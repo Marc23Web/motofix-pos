@@ -10,6 +10,8 @@ const INITIAL_PRODUCTS = [
   { id: 7, name: 'Osram LED Headlight Bulb T19', category: 'Electrical', price: 320, stock: 15, unit: 'pcs' }
 ];
 
+const INITIAL_MECHANICS = ['Juan', 'Pedro', 'Cardo', 'Talyer Shop / House'];
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('pos');
   const [products, setProducts] = useState(INITIAL_PRODUCTS);
@@ -17,6 +19,11 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   
+  // Custom Service Input State
+  const [customServiceName, setCustomServiceName] = useState('');
+  const [customServicePrice, setCustomServicePrice] = useState('');
+  const [selectedMechanic, setSelectedMechanic] = useState('Juan');
+
   // Sales History State na nakakabit sa LocalStorage
   const [salesHistory, setSalesHistory] = useState(() => {
     const saved = localStorage.getItem('motofix_sales');
@@ -29,10 +36,9 @@ export default function App() {
     localStorage.setItem('motofix_sales', JSON.stringify(salesHistory));
   }, [salesHistory]);
 
-  // Categories
   const categories = ['All', 'Engine Oil', 'Electrical', 'Tires', 'Brake System', 'Engine Parts'];
 
-  // Cart Functions
+  // Add Product to Cart
   const addToCart = (product) => {
     if (product.stock <= 0) return alert('Out of stock na ang item na ito!');
     setCart((prev) => {
@@ -46,8 +52,30 @@ export default function App() {
           item.id === product.id ? { ...item, qty: item.qty + 1 } : item
         );
       }
-      return [...prev, { ...product, qty: 1 }];
+      return [...prev, { ...product, qty: 1, type: 'part' }];
     });
+  };
+
+  // Add Labor/Service to Cart
+  const handleAddService = (e) => {
+    e.preventDefault();
+    if (!customServiceName || !customServicePrice || Number(customServicePrice) <= 0) {
+      return alert('Paki-lagay ang tamang detalye at halaga ng serbisyo!');
+    }
+
+    const serviceItem = {
+      id: 'srv_' + Date.now(),
+      name: `[LABOR] ${customServiceName}`,
+      category: 'Service / Labor',
+      price: Number(customServicePrice),
+      qty: 1,
+      type: 'service',
+      mechanic: selectedMechanic
+    };
+
+    setCart((prev) => [...prev, serviceItem]);
+    setCustomServiceName('');
+    setCustomServicePrice('');
   };
 
   const updateCartQty = (id, delta) => {
@@ -55,6 +83,7 @@ export default function App() {
       prev
         .map((item) => {
           if (item.id === id) {
+            if (item.type === 'service') return item; // Fixed 1 qty for services
             const newQty = item.qty + delta;
             return newQty > 0 ? { ...item, qty: newQty } : null;
           }
@@ -78,7 +107,7 @@ export default function App() {
       total: totalAmount
     };
 
-    // Bawasan ang stock ng mga nabentang produkto
+    // Bawasan ang stock ng mga nabentang pyesa
     setProducts((prev) =>
       prev.map((prod) => {
         const cartItem = cart.find((c) => c.id === prod.id);
@@ -113,30 +142,60 @@ export default function App() {
 
   const totalDailyRevenue = salesHistory.reduce((sum, sale) => sum + sale.total, 0);
 
+  // Mechanic Performance Calculation
+  const mechanicEarnings = INITIAL_MECHANICS.map((mech) => {
+    let totalLabor = 0;
+    let jobCount = 0;
+    const jobs = [];
+
+    salesHistory.forEach((sale) => {
+      sale.items.forEach((item) => {
+        if (item.type === 'service' && item.mechanic === mech) {
+          totalLabor += item.price * item.qty;
+          jobCount += item.qty;
+          jobs.push({
+            time: sale.time,
+            date: sale.date,
+            service: item.name,
+            price: item.price
+          });
+        }
+      });
+    });
+
+    return { name: mech, totalLabor, jobCount, jobs };
+  });
+
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-800">
       {/* Header Bar */}
       <header className="bg-slate-900 text-white px-6 py-4 flex flex-wrap justify-between items-center shadow-md">
         <div className="flex items-center space-x-3">
           <span className="text-2xl font-bold tracking-wider text-red-500">🔧 MOTOFIX PARTS & SERBISYO</span>
-          <span className="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded">Inventory & Cashier POS Tool</span>
+          <span className="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded">Inventory & POS System</span>
         </div>
-        <div className="flex space-x-3 mt-2 sm:mt-0">
+        <div className="flex space-x-2 mt-2 sm:mt-0 flex-wrap gap-y-2">
           <button
             onClick={() => setActiveTab('pos')}
-            className={`px-4 py-2 rounded-lg font-medium transition ${activeTab === 'pos' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'pos' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
           >
             🛒 Cashier / POS
           </button>
           <button
             onClick={() => setActiveTab('stocks')}
-            className={`px-4 py-2 rounded-lg font-medium transition ${activeTab === 'stocks' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'stocks' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
           >
             📦 Stocks & Prices ({products.filter(p => p.stock < 5).length})
           </button>
           <button
+            onClick={() => setActiveTab('mechanics')}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'mechanics' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+          >
+            👨‍🔧 Mechanic Jobs
+          </button>
+          <button
             onClick={() => setShowSalesModal(true)}
-            className="px-4 py-2 rounded-lg font-medium bg-emerald-600 hover:bg-emerald-500 text-white transition shadow"
+            className="px-3 py-2 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-500 text-white transition shadow"
           >
             📊 Daily Sales (₱{totalDailyRevenue.toLocaleString()})
           </button>
@@ -144,10 +203,43 @@ export default function App() {
       </header>
 
       {/* Main Container */}
-      {activeTab === 'pos' ? (
+      {activeTab === 'pos' && (
         <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column: Catalog */}
+          {/* Left Column: Catalog & Add Service Form */}
           <div className="lg:col-span-2 space-y-4">
+            {/* Add Service / Labor Form */}
+            <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl shadow-sm">
+              <h3 className="text-sm font-bold text-amber-900 mb-2 flex items-center gap-2">👨‍🔧 + Add Labor / Serbisyo Fee</h3>
+              <form onSubmit={handleAddService} className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                <input
+                  type="text"
+                  placeholder="Uri ng Trabaho (e.g. Change Oil, Tune Up)"
+                  value={customServiceName}
+                  onChange={(e) => setCustomServiceName(e.target.value)}
+                  className="sm:col-span-1 border rounded-lg px-3 py-1.5 text-sm bg-white"
+                />
+                <input
+                  type="number"
+                  placeholder="Presyo (₱)"
+                  value={customServicePrice}
+                  onChange={(e) => setCustomServicePrice(e.target.value)}
+                  className="border rounded-lg px-3 py-1.5 text-sm bg-white"
+                />
+                <select
+                  value={selectedMechanic}
+                  onChange={(e) => setSelectedMechanic(e.target.value)}
+                  className="border rounded-lg px-3 py-1.5 text-sm bg-white font-semibold"
+                >
+                  {INITIAL_MECHANICS.map((m) => (
+                    <option key={m} value={m}>Mekaniko: {m}</option>
+                  ))}
+                </select>
+                <button type="submit" className="bg-amber-600 hover:bg-amber-500 text-white text-sm font-bold py-1.5 px-3 rounded-lg transition">
+                  + Add Labor
+                </button>
+              </form>
+            </div>
+
             {/* Search & Filters */}
             <div className="flex flex-wrap gap-3 bg-white p-4 rounded-xl shadow-sm">
               <input
@@ -181,196 +273,4 @@ export default function App() {
                   <div>
                     <div className="flex justify-between items-start mb-2">
                       <span className="text-xs uppercase tracking-wider text-slate-400 font-bold">{prod.category}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded font-bold ${prod.stock < 5 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                        {prod.stock} {prod.unit}
-                      </span>
-                    </div>
-                    <h3 className="font-semibold text-slate-800 line-clamp-2">{prod.name}</h3>
-                  </div>
-                  <div className="mt-4 flex justify-between items-center">
-                    <span className="text-lg font-bold text-red-600">₱{prod.price.toLocaleString()}</span>
-                    <button
-                      onClick={() => addToCart(prod)}
-                      disabled={prod.stock <= 0}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-bold transition ${
-                        prod.stock > 0 ? 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                      }`}
-                    >
-                      {prod.stock > 0 ? 'Add +' : 'Out of Stock'}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Right Column: Cart */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between h-[calc(100vh-140px)] sticky top-6">
-            <div>
-              <div className="flex justify-between items-center pb-4 border-b">
-                <h2 className="text-xl font-bold flex items-center gap-2">🛒 Current Order</h2>
-                <span className="text-sm bg-slate-100 px-3 py-1 rounded-full font-bold">{cart.reduce((a, b) => a + b.qty, 0)} items</span>
-              </div>
-
-              {/* Cart Items List */}
-              <div className="mt-4 space-y-3 max-h-[50vh] overflow-y-auto pr-1">
-                {cart.length === 0 ? (
-                  <div className="text-center py-12 text-slate-400">
-                    <p className="text-4xl mb-2">🛒</p>
-                    <p>Walang laman ang cart.</p>
-                    <p className="text-xs">Pumili ng item sa kaliwa para magdagdag.</p>
-                  </div>
-                ) : (
-                  cart.map((item) => (
-                    <div key={item.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                      <div className="flex-1 pr-2">
-                        <p className="font-semibold text-sm line-clamp-1">{item.name}</p>
-                        <p className="text-xs text-slate-500">₱{item.price} x {item.qty}</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <button onClick={() => updateCartQty(item.id, -1)} className="w-6 h-6 rounded bg-slate-200 hover:bg-slate-300 font-bold">-</button>
-                        <span className="text-sm font-bold w-4 text-center">{item.qty}</span>
-                        <button onClick={() => updateCartQty(item.id, 1)} className="w-6 h-6 rounded bg-slate-200 hover:bg-slate-300 font-bold">+</button>
-                        <span className="text-sm font-bold text-slate-800 ml-2">₱{(item.price * item.qty).toLocaleString()}</span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Total & Checkout */}
-            <div className="pt-4 border-t space-y-3">
-              <div className="flex justify-between items-center text-lg">
-                <span className="text-slate-500 font-medium">Subtotal</span>
-                <span className="font-bold">₱{totalAmount.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center text-xl font-black text-red-600">
-                <span>TOTAL AMOUNT</span>
-                <span>₱{totalAmount.toLocaleString()}</span>
-              </div>
-              <button
-                onClick={handleCheckout}
-                disabled={cart.length === 0}
-                className={`w-full py-4 rounded-xl font-bold text-lg text-white transition shadow-lg ${
-                  cart.length > 0 ? 'bg-red-600 hover:bg-red-500 active:scale-95' : 'bg-slate-300 cursor-not-allowed'
-                }`}
-              >
-                ₱ MAG-BAYAD (CHECKOUT)
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* Stocks & Prices Management View */
-        <div className="p-6 max-w-5xl mx-auto">
-          <div className="bg-white p-6 rounded-xl shadow-sm border">
-            <h2 className="text-2xl font-bold mb-4">📦 Inventory & Stock List</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-100 border-b text-slate-600 text-sm">
-                    <th className="p-3">Item Name</th>
-                    <th className="p-3">Category</th>
-                    <th className="p-3">Price</th>
-                    <th className="p-3">Available Stock</th>
-                    <th className="p-3">Unit</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.map((p) => (
-                    <tr key={p.id} className="border-b hover:bg-slate-50">
-                      <td className="p-3 font-semibold">{p.name}</td>
-                      <td className="p-3 text-sm text-slate-500">{p.category}</td>
-                      <td className="p-3 font-bold text-red-600">₱{p.price.toLocaleString()}</td>
-                      <td className="p-3">
-                        <span className={`px-2 py-1 rounded text-xs font-bold ${p.stock < 5 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                          {p.stock}
-                        </span>
-                      </td>
-                      <td className="p-3 text-sm">{p.unit}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Daily Sales History Modal */}
-      {showSalesModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-          <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
-            <div className="bg-slate-900 text-white p-4 flex justify-between items-center">
-              <h3 className="text-xl font-bold flex items-center gap-2">📊 Daily Sales Log & Reports</h3>
-              <button onClick={() => setShowSalesModal(false)} className="text-slate-400 hover:text-white font-bold text-xl">✕</button>
-            </div>
-
-            <div className="p-6 overflow-y-auto flex-1 space-y-4">
-              <div className="flex justify-between items-center bg-emerald-50 p-4 rounded-xl border border-emerald-200">
-                <div>
-                  <p className="text-xs uppercase text-emerald-600 font-bold">Kabuuang Benta (Total Revenue)</p>
-                  <p className="text-3xl font-black text-emerald-700">₱{totalDailyRevenue.toLocaleString()}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-slate-500">Kabuuang Transaksyon</p>
-                  <p className="text-xl font-bold text-slate-700">{salesHistory.length} Orders</p>
-                </div>
-              </div>
-
-              {salesHistory.length === 0 ? (
-                <div className="text-center py-8 text-slate-400">
-                  <p>Wala pang nabebenta ngayong araw.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {salesHistory.map((sale) => (
-                    <div key={sale.id} className="border rounded-xl p-4 bg-slate-50 space-y-2">
-                      <div className="flex justify-between items-center border-b pb-2">
-                        <span className="text-xs font-bold text-slate-500">🕒 {sale.date} - {sale.time}</span>
-                        <span className="font-black text-red-600">Total: ₱{sale.total.toLocaleString()}</span>
-                      </div>
-                      <ul className="text-sm space-y-1">
-                        {sale.items.map((item, idx) => (
-                          <li key={idx} className="flex justify-between text-slate-700">
-                            <span>• {item.name} x {item.qty}</span>
-                            <span className="font-semibold">₱{(item.price * item.qty).toLocaleString()}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Modal Actions Footer */}
-            <div className="p-4 bg-slate-100 border-t flex justify-between items-center">
-              <button
-                onClick={clearSalesHistory}
-                className="px-4 py-2 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded-lg text-sm font-bold transition"
-              >
-                🗑 Reset Sales Today
-              </button>
-              <div className="space-x-2">
-                <button
-                  onClick={handlePrint}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-bold transition"
-                >
-                  🖨 Print Summary
-                </button>
-                <button
-                  onClick={() => setShowSalesModal(false)}
-                  className="px-4 py-2 bg-slate-300 hover:bg-slate-400 text-slate-800 rounded-lg text-sm font-bold transition"
-                >
-                  Isara
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+                      <span className
