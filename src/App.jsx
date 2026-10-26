@@ -306,4 +306,243 @@ export default function App() {
             <div>
               <div className="flex justify-between items-center pb-4 border-b">
                 <h2 className="text-xl font-bold flex items-center gap-2">🛒 Current Order</h2>
-                <span className="text-sm bg-slate-100 px-3 py-1 rounded-full font-bold">{cart.
+                <span className="text-sm bg-slate-100 px-3 py-1 rounded-full font-bold">{cart.reduce((a, b) => a + b.qty, 0)} items</span>
+              </div>
+
+              <div className="mt-4 space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+                {cart.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400">
+                    <p className="text-4xl mb-2">🛒</p>
+                    <p>Walang laman ang cart.</p>
+                  </div>
+                ) : (
+                  cart.map((item) => (
+                    <div key={item.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg border">
+                      <div className="flex-1 pr-2">
+                        <p className="font-semibold text-sm line-clamp-1">{item.name}</p>
+                        {item.type === 'service' ? (
+                          <p className="text-xs text-amber-700 font-bold">👤 Mekaniko: {item.mechanic}</p>
+                        ) : (
+                          <p className="text-xs text-slate-500">₱{item.price} x {item.qty}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {item.type !== 'service' && (
+                          <>
+                            <button onClick={() => updateCartQty(item.id, -1)} className="w-6 h-6 rounded bg-slate-200 hover:bg-slate-300 font-bold">-</button>
+                            <span className="text-sm font-bold w-4 text-center">{item.qty}</span>
+                            <button onClick={() => updateCartQty(item.id, 1)} className="w-6 h-6 rounded bg-slate-200 hover:bg-slate-300 font-bold">+</button>
+                          </>
+                        )}
+                        <span className="text-sm font-bold text-slate-800 ml-2">₱{(item.price * item.qty).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="pt-4 border-t space-y-3">
+              <div className="flex justify-between items-center text-xl font-black text-red-600">
+                <span>TOTAL AMOUNT</span>
+                <span>₱{totalAmount.toLocaleString()}</span>
+              </div>
+              <button
+                onClick={handleCheckout}
+                disabled={cart.length === 0}
+                className={`w-full py-4 rounded-xl font-bold text-lg text-white transition shadow-lg ${
+                  cart.length > 0 ? 'bg-red-600 hover:bg-red-500 active:scale-95' : 'bg-slate-300 cursor-not-allowed'
+                }`}
+              >
+                ₱ MAG-BAYAD (CHECKOUT)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stocks Tab */}
+      {activeTab === 'stocks' && (
+        <div className="p-6 max-w-5xl mx-auto">
+          <div className="bg-white p-6 rounded-xl shadow-sm border">
+            <h2 className="text-2xl font-bold mb-4">📦 Inventory & Stock List</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 border-b text-slate-600 text-sm">
+                    <th className="p-3">Item Name</th>
+                    <th className="p-3">Category</th>
+                    <th className="p-3">Price</th>
+                    <th className="p-3">Available Stock</th>
+                    <th className="p-3">Unit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map((p) => (
+                    <tr key={p.id} className="border-b hover:bg-slate-50">
+                      <td className="p-3 font-semibold">{p.name}</td>
+                      <td className="p-3 text-sm text-slate-500">{p.category}</td>
+                      <td className="p-3 font-bold text-red-600">₱{p.price.toLocaleString()}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded text-xs font-bold ${p.stock < 5 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                          {p.stock}
+                        </span>
+                      </td>
+                      <td className="p-3 text-sm">{p.unit}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mechanics Tab */}
+      {activeTab === 'mechanics' && (
+        <div className="p-6 max-w-5xl mx-auto space-y-6">
+          <div className="bg-white p-6 rounded-xl shadow-sm border">
+            <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">👨‍🔧 Mechanic Earnings & Labor Tracker</h2>
+            <p className="text-sm text-slate-500 mb-6">Talaan ng kinita at nagawang trabaho ng bawat mekaniko ngayong araw.</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {mechanicEarnings.map((mech) => (
+                <div key={mech.name} className="border rounded-xl p-5 bg-slate-50 space-y-3">
+                  <div className="flex justify-between items-center border-b pb-3">
+                    <div>
+                      <h3 className="font-bold text-lg text-slate-800">👤 {mech.name}</h3>
+                      <p className="text-xs text-slate-500">{mech.jobCount} Serbisyo / Trabaho Natapos</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs uppercase font-bold text-amber-600">Kabuuang Labor</span>
+                      <p className="text-2xl font-black text-amber-600">₱{mech.totalLabor.toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                    {mech.jobs.length === 0 ? (
+                      <p className="text-xs text-slate-400 italic">Wala pang naitalang labor ngayon.</p>
+                    ) : (
+                      mech.jobs.map((j, idx) => (
+                        <div key={idx} className="flex justify-between text-xs bg-white p-2 rounded border">
+                          <span className="font-medium text-slate-700">{j.service} <span className="text-slate-400">({j.time})</span></span>
+                          <span className="font-bold text-slate-800">₱{j.price.toLocaleString()}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Daily Sales Modal with Date Filter */}
+      {showSalesModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+          <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="bg-slate-900 text-white p-4 flex justify-between items-center">
+              <h3 className="text-xl font-bold flex items-center gap-2">📊 Daily Sales Log & Reports</h3>
+              <button onClick={() => setShowSalesModal(false)} className="text-slate-400 hover:text-white font-bold text-xl">✕</button>
+            </div>
+
+            <div className="p-6 overflow-y-auto flex-1 space-y-4">
+              {/* Filter Controls */}
+              <div className="flex justify-between items-center bg-slate-100 p-3 rounded-xl border">
+                <span className="text-sm font-bold text-slate-700">📅 Pumili ng Petsa:</span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSalesDateFilter('today')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition ${salesDateFilter === 'today' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 hover:bg-slate-200'}`}
+                  >
+                    Ngayong Araw
+                  </button>
+                  <button
+                    onClick={() => setSalesDateFilter('yesterday')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition ${salesDateFilter === 'yesterday' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 hover:bg-slate-200'}`}
+                  >
+                    Kahapon
+                  </button>
+                  <button
+                    onClick={() => setSalesDateFilter('all')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition ${salesDateFilter === 'all' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 hover:bg-slate-200'}`}
+                  >
+                    Lahat (All Time)
+                  </button>
+                </div>
+              </div>
+
+              {/* Total Summary Header */}
+              <div className="flex justify-between items-center bg-emerald-50 p-4 rounded-xl border border-emerald-200">
+                <div>
+                  <p className="text-xs uppercase text-emerald-600 font-bold">
+                    Kabuuang Benta ({salesDateFilter === 'today' ? 'Ngayong Araw' : salesDateFilter === 'yesterday' ? 'Kahapon' : 'Lahat'})
+                  </p>
+                  <p className="text-3xl font-black text-emerald-700">₱{filteredTotalRevenue.toLocaleString()}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-slate-500">Kabuuang Transaksyon</p>
+                  <p className="text-xl font-bold text-slate-700">{filteredSalesHistory.length} Orders</p>
+                </div>
+              </div>
+
+              {/* Sales List */}
+              {filteredSalesHistory.length === 0 ? (
+                <div className="text-center py-8 text-slate-400">
+                  <p>Walang naitalang benta para sa napiling filter.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filteredSalesHistory.map((sale) => (
+                    <div key={sale.id} className="border rounded-xl p-4 bg-slate-50 space-y-2">
+                      <div className="flex justify-between items-center border-b pb-2">
+                        <span className="text-xs font-bold text-slate-500">🕒 {sale.date} - {sale.time}</span>
+                        <span className="font-black text-red-600">Total: ₱{sale.total.toLocaleString()}</span>
+                      </div>
+                      <ul className="text-sm space-y-1">
+                        {sale.items.map((item, idx) => (
+                          <li key={idx} className="flex justify-between text-slate-700">
+                            <span>
+                              • {item.name} x {item.qty}
+                              {item.type === 'service' && <span className="text-xs text-amber-600 font-bold ml-1">({item.mechanic})</span>}
+                            </span>
+                            <span className="font-semibold">₱{(item.price * item.qty).toLocaleString()}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Actions Footer */}
+            <div className="p-4 bg-slate-100 border-t flex justify-between items-center">
+              <button
+                onClick={clearSalesHistory}
+                className="px-4 py-2 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded-lg text-sm font-bold transition"
+              >
+                🗑 Reset All History
+              </button>
+              <div className="space-x-2">
+                <button
+                  onClick={handlePrint}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-bold transition"
+                >
+                  🖨 Print Summary
+                </button>
+                <button
+                  onClick={() => setShowSalesModal(false)}
+                  className="px-4 py-2 bg-slate-300 hover:bg-slate-400 text-slate-800 rounded-lg text-sm font-bold transition"
+                >
+                  Isara
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
