@@ -167,14 +167,14 @@ export default function App() {
         <nav className="flex bg-slate-800 p-1 rounded-xl space-x-1">
           <button 
             onClick={() => setActiveTab('pos')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'pos' ? 'bg-red-600 text-white shadow' : 'text-slate-300 hover:text-white'}`}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition ₱{activeTab === 'pos' ? 'bg-red-600 text-white shadow' : 'text-slate-300 hover:text-white'}`}
           >
             <ShoppingCart className="h-4 w-4" />
             <span>Cashier / POS</span>
           </button>
           <button 
             onClick={() => setActiveTab('inventory')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'inventory' ? 'bg-red-600 text-white shadow' : 'text-slate-300 hover:text-white'}`}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition ₱{activeTab === 'inventory' ? 'bg-red-600 text-white shadow' : 'text-slate-300 hover:text-white'}`}
           >
             <Package className="h-4 w-4" />
             <span>Stocks & Prices</span>
@@ -186,7 +186,7 @@ export default function App() {
           </button>
           <button 
             onClick={() => setActiveTab('joborders')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'joborders' ? 'bg-red-600 text-white shadow' : 'text-slate-300 hover:text-white'}`}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition ₱{activeTab === 'joborders' ? 'bg-red-600 text-white shadow' : 'text-slate-300 hover:text-white'}`}
           >
             <Users className="h-4 w-4" />
             <span>Mechanic Jobs</span>
@@ -229,7 +229,7 @@ export default function App() {
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition ${selectedCategory === cat ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition ₱{selectedCategory === cat ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}
                   >
                     {cat}
                   </button>
@@ -245,13 +245,13 @@ export default function App() {
                     <div 
                       key={product.id}
                       onClick={() => !isOut && addToCart(product)}
-                      className={`p-3 border rounded-xl flex flex-col justify-between cursor-pointer transition select-none ${isOut ? 'opacity-40 bg-slate-100 border-slate-200 cursor-not-allowed' : 'hover:border-red-500 hover:shadow-md bg-white border-slate-200'}`}
+                      className={`p-3 border rounded-xl flex flex-col justify-between cursor-pointer transition select-none ₱{isOut ? 'opacity-40 bg-slate-100 border-slate-200 cursor-not-allowed' : 'hover:border-red-500 hover:shadow-md bg-white border-slate-200'}`}
                     >
                       <div>
                         <div className="flex justify-between items-start mb-1">
                           <span className="text-xs text-slate-400 font-medium uppercase">{product.category}</span>
-                          <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${isOut ? 'bg-red-100 text-red-700' : isLow ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>
-                            {isOut ? 'OUT OF STOCK' : `${product.stock} ${product.unit}`}
+                          <span className={`text-xs font-bold px-1.5 py-0.5 rounded ₱{isOut ? 'bg-red-100 text-red-700' : isLow ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>
+                            {isOut ? 'OUT OF STOCK' : `₱{product.stock} ₱{product.unit}`}
                           </span>
                         </div>
                         <h3 className="font-semibold text-sm text-slate-800 line-clamp-2">{product.name}</h3>
@@ -321,7 +321,7 @@ export default function App() {
                 <button 
                   disabled={cart.length === 0}
                   onClick={() => setPaymentModal(true)}
-                  className={`w-full py-3.5 rounded-xl font-bold text-base shadow-md flex justify-center items-center space-x-2 transition ${cart.length === 0 ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+                  className={`w-full py-3.5 rounded-xl font-bold text-base shadow-md flex justify-center items-center space-x-2 transition ₱{cart.length === 0 ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
                 >
                   <DollarSign className="h-5 w-5" />
                   <span>MAG-BAYAD (CHECKOUT)</span>
@@ -389,7 +389,7 @@ export default function App() {
                           <td className="p-3 text-slate-500">₱{product.cost}</td>
                           <td className="p-3 font-bold text-red-600">₱{product.price}</td>
                           <td className="p-3">
-                            <span className={`px-2 py-1 rounded font-bold text-xs ${isLow ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'}`}>
+                            <span className={`px-2 py-1 rounded font-bold text-xs ₱{isLow ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'}`}>
                               {product.stock} {product.unit}
                             </span>
                           </td>
@@ -476,7 +476,7 @@ export default function App() {
 
               <div className="flex justify-between items-center text-lg font-extrabold text-slate-900 pt-2 border-t">
                 <span>SUKLI:</span>
-                <span className={`text-2xl ${changeAmount < 0 ? 'text-slate-400' : 'text-emerald-600'}`}>
+                <span className={`text-2xl ₱{changeAmount < 0 ? 'text-slate-400' : 'text-emerald-600'}`}>
                   ₱{changeAmount.toLocaleString()}
                 </span>
               </div>
