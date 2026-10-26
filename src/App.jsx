@@ -1,630 +1,372 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Wrench, Package, ShoppingCart, AlertTriangle, Plus, Search, 
-  Trash2, RefreshCw, CheckCircle, FileText, ArrowRight, DollarSign, 
-  TrendingUp, Users, Check, Printer, X, Tag, List, Box, HardDrive
-} from 'lucide-react';
 
-// Sample Initial Products
 const INITIAL_PRODUCTS = [
-  { id: 1, name: 'Yamalube 10W-40 4T (800ml)', category: 'Engine Oil', price: 250, cost: 190, stock: 18, minStock: 10, unit: 'bottle' },
-  { id: 2, name: 'Motul 7100 10W-40 1L', category: 'Engine Oil', price: 580, cost: 480, stock: 4, minStock: 8, unit: 'bottle' },
-  { id: 3, name: 'NGK Spark Plug CPR8EA-9', category: 'Electrical', price: 140, cost: 95, stock: 32, minStock: 15, unit: 'pcs' },
-  { id: 4, name: 'FDR Sport XR Evo 90/80-17', category: 'Tires', price: 1450, cost: 1150, stock: 3, minStock: 5, unit: 'pcs' },
-  { id: 5, name: 'RCB Brake Pad S-Series (NMAX)', category: 'Brake System', price: 380, cost: 260, stock: 12, minStock: 6, unit: 'set' },
-  { id: 6, name: 'Drive Belt Click 125i (Honda)', category: 'Engine Parts', price: 650, cost: 480, stock: 2, minStock: 5, unit: 'pcs' },
-  { id: 7, name: 'Osram LED Headlight Bulb T19', category: 'Electrical', price: 320, cost: 210, stock: 15, minStock: 8, unit: 'pcs' },
+  { id: 1, name: 'Yamalube 10W-40 4T (800ml)', category: 'Engine Oil', price: 250, stock: 18, unit: 'bottle' },
+  { id: 2, name: 'Motul 7100 10W-40 1L', category: 'Engine Oil', price: 580, stock: 4, unit: 'bottle' },
+  { id: 3, name: 'NGK Spark Plug CPR8EA-9', category: 'Electrical', price: 140, stock: 32, unit: 'pcs' },
+  { id: 4, name: 'FDR Sport XR Evo 90/80-17', category: 'Tires', price: 1450, stock: 3, unit: 'pcs' },
+  { id: 5, name: 'RCB Brake Pad S-Series (NMAX)', category: 'Brake System', price: 380, stock: 12, unit: 'set' },
+  { id: 6, name: 'Drive Belt Click 125i (Honda)', category: 'Engine Parts', price: 650, stock: 2, unit: 'pcs' },
+  { id: 7, name: 'Osram LED Headlight Bulb T19', category: 'Electrical', price: 320, stock: 15, unit: 'pcs' }
 ];
 
-const MECHANICS = ['Kuya Jun', 'Master Ben', 'Roldan'];
-
 export default function App() {
-  const [activeTab, setActiveTab] = useState('pos'); // pos, inventory, joborders, dashboard
-  const [products, setProducts] = useState(() => {
-    const saved = localStorage.getItem('mc_products');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
-  });
-
+  const [activeTab, setActiveTab] = useState('pos');
+  const [products, setProducts] = useState(INITIAL_PRODUCTS);
   const [cart, setCart] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [paymentModal, setPaymentModal] = useState(false);
-  const [amountPaid, setAmountPaid] = useState('');
-  const [lastReceipt, setLastReceipt] = useState(null);
-
-  // Job Orders
-  const [jobOrders, setJobOrders] = useState([
-    { id: 'JO-101', customer: 'Juan Dela Cruz', plate: 'ABC 1234', model: 'Yamaha NMAX', mechanic: 'Kuya Jun', issue: 'Change oil & Belt replacement', status: 'In Progress', items: [{ name: 'Yamalube 10W-40', price: 250, qty: 1 }], laborFee: 200 }
-  ]);
-  const [newJOModal, setNewJOModal] = useState(false);
-  const [newJO, setNewJO] = useState({ customer: '', plate: '', model: '', mechanic: MECHANICS[0], issue: '', laborFee: 150 });
-
-  // Add/Edit Product State
-  const [productModal, setProductModal] = useState(false);
-  const [newProduct, setNewProduct] = useState({ name: '', category: 'Engine Oil', price: '', cost: '', stock: '', minStock: 5, unit: 'pcs' });
-  const [restockItem, setRestockItem] = useState(null);
-  const [restockQty, setRestockQty] = useState('');
-
-  useEffect(() => {
-    localStorage.setItem('mc_products', JSON.stringify(products));
-  }, [products]);
-
-  // Categories
-  const categories = ['All', ...new Set(products.map(p => p.category))];
-
-  // Filtered products for Cashier search
-  const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.category.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCat = selectedCategory === 'All' || p.category === selectedCategory;
-    return matchesSearch && matchesCat;
+  
+  // Sales History State na nakakabit sa LocalStorage
+  const [salesHistory, setSalesHistory] = useState(() => {
+    const saved = localStorage.getItem('motofix_sales');
+    return saved ? JSON.parse(saved) : [];
   });
 
-  const lowStockProducts = products.filter(p => p.stock <= p.minStock);
+  const [showSalesModal, setShowSalesModal] = useState(false);
 
-  // POS Actions
+  useEffect(() => {
+    localStorage.setItem('motofix_sales', JSON.stringify(salesHistory));
+  }, [salesHistory]);
+
+  // Categories
+  const categories = ['All', 'Engine Oil', 'Electrical', 'Tires', 'Brake System', 'Engine Parts'];
+
+  // Cart Functions
   const addToCart = (product) => {
     if (product.stock <= 0) return alert('Out of stock na ang item na ito!');
-    const existing = cart.find(item => item.id === product.id);
-    if (existing) {
-      if (existing.qty >= product.stock) return alert('Nasa limit ka na ng natitirang stock!');
-      setCart(cart.map(item => item.id === product.id ? { ...item, qty: item.qty + 1 } : item));
-    } else {
-      setCart([...cart, { ...product, qty: 1, type: 'product' }]);
-    }
-  };
-
-  const addLaborFeeToCart = () => {
-    const fee = prompt('Magkano ang Labor / Mechanic Service Fee? (₱)', '150');
-    if (fee && !isNaN(fee) && Number(fee) > 0) {
-      setCart([...cart, { id: 'labor-' + Date.now(), name: `Labor / Mechanic Fee`, price: Number(fee), qty: 1, type: 'service' }]);
-    }
-  };
-
-  const removeFromCart = (id) => {
-    setCart(cart.filter(item => item.id !== id));
-  };
-
-  const updateCartQty = (id, qty) => {
-    if (qty <= 0) return removeFromCart(id);
-    const item = cart.find(i => i.id === id);
-    if (item.type === 'product') {
-      const prod = products.find(p => p.id === id);
-      if (qty > prod.stock) return alert('Sobra na sa available stock!');
-    }
-    setCart(cart.map(i => i.id === id ? { ...i, qty } : i));
-  };
-
-  const cartTotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-  const changeAmount = Number(amountPaid) >= cartTotal ? Number(amountPaid) - cartTotal : 0;
-
-  const handleCompleteSale = () => {
-    if (Number(amountPaid) < cartTotal) return alert('Kulang ang inabot na pera ng customer!');
-    
-    // Deduct stock
-    const updated = products.map(p => {
-      const inCart = cart.find(c => c.id === p.id && c.type === 'product');
-      if (inCart) {
-        return { ...p, stock: p.stock - inCart.qty };
+    setCart((prev) => {
+      const existing = prev.find((item) => item.id === product.id);
+      if (existing) {
+        if (existing.qty >= product.stock) {
+          alert('Naabot na ang maximum available stock!');
+          return prev;
+        }
+        return prev.map((item) =>
+          item.id === product.id ? { ...item, qty: item.qty + 1 } : item
+        );
       }
-      return p;
+      return [...prev, { ...product, qty: 1 }];
     });
-
-    setProducts(updated);
-    setLastReceipt({
-      items: [...cart],
-      total: cartTotal,
-      paid: Number(amountPaid),
-      change: changeAmount,
-      date: new Date().toLocaleString()
-    });
-    setCart([]);
-    setAmountPaid('');
-    setPaymentModal(false);
-    alert('Transaksyon Kumpleto! Nabawasan na ang stock.');
   };
 
-  // Product Encoding
-  const handleSaveProduct = (e) => {
-    e.preventDefault();
-    if (!newProduct.name || !newProduct.price) return;
-    const item = {
+  const updateCartQty = (id, delta) => {
+    setCart((prev) =>
+      prev
+        .map((item) => {
+          if (item.id === id) {
+            const newQty = item.qty + delta;
+            return newQty > 0 ? { ...item, qty: newQty } : null;
+          }
+          return item;
+        })
+        .filter(Boolean)
+    );
+  };
+
+  const totalAmount = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+
+  // Checkout Function
+  const handleCheckout = () => {
+    if (cart.length === 0) return alert('Walang laman ang cart!');
+
+    const newSale = {
       id: Date.now(),
-      name: newProduct.name,
-      category: newProduct.category,
-      price: Number(newProduct.price),
-      cost: Number(newProduct.cost || 0),
-      stock: Number(newProduct.stock || 0),
-      minStock: Number(newProduct.minStock || 5),
-      unit: newProduct.unit || 'pcs'
+      date: new Date().toLocaleDateString('en-PH'),
+      time: new Date().toLocaleTimeString('en-PH'),
+      items: [...cart],
+      total: totalAmount
     };
-    setProducts([...products, item]);
-    setNewProduct({ name: '', category: 'Engine Oil', price: '', cost: '', stock: '', minStock: 5, unit: 'pcs' });
-    setProductModal(false);
+
+    // Bawasan ang stock ng mga nabentang produkto
+    setProducts((prev) =>
+      prev.map((prod) => {
+        const cartItem = cart.find((c) => c.id === prod.id);
+        if (cartItem) {
+          return { ...prod, stock: prod.stock - cartItem.qty };
+        }
+        return prod;
+      })
+    );
+
+    setSalesHistory([newSale, ...salesHistory]);
+    setCart([]);
+    alert(`Checkout Successful! Total: ₱${totalAmount.toLocaleString()}`);
   };
 
-  const handleRestock = () => {
-    if (!restockItem || !restockQty || isNaN(restockQty)) return;
-    setProducts(products.map(p => p.id === restockItem.id ? { ...p, stock: p.stock + Number(restockQty) } : p));
-    setRestockItem(null);
-    setRestockQty('');
+  const clearSalesHistory = () => {
+    if (window.confirm('Sigurado ka bang gusto mong i-reset ang Daily Sales History?')) {
+      setSalesHistory([]);
+    }
   };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // Filtering Products
+  const filteredProducts = products.filter((prod) => {
+    const matchesCategory = selectedCategory === 'All' || prod.category === selectedCategory;
+    const matchesSearch = prod.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  const totalDailyRevenue = salesHistory.reduce((sum, sale) => sum + sale.total, 0);
 
   return (
-    <div className="flex flex-col h-screen bg-slate-100 font-sans text-slate-800">
-      {/* TOP NAVBAR */}
-      <header className="bg-slate-900 text-white px-6 py-3 flex justify-between items-center shadow-md">
+    <div className="min-h-screen bg-slate-100 font-sans text-slate-800">
+      {/* Header Bar */}
+      <header className="bg-slate-900 text-white px-6 py-4 flex flex-wrap justify-between items-center shadow-md">
         <div className="flex items-center space-x-3">
-          <div className="bg-red-600 p-2 rounded-lg">
-            <Wrench className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h1 className="font-bold text-lg tracking-wide leading-none">MOTOFIX PARTS & SERBISYO</h1>
-            <p className="text-xs text-slate-400">Inventory & Cashier POS Tool</p>
-          </div>
+          <span className="text-2xl font-bold tracking-wider text-red-500">🔧 MOTOFIX PARTS & SERBISYO</span>
+          <span className="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded">Inventory & Cashier POS Tool</span>
         </div>
-
-        {/* NAVIGATION TABS */}
-        <nav className="flex bg-slate-800 p-1 rounded-xl space-x-1">
-          <button 
+        <div className="flex space-x-3 mt-2 sm:mt-0">
+          <button
             onClick={() => setActiveTab('pos')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition ₱{activeTab === 'pos' ? 'bg-red-600 text-white shadow' : 'text-slate-300 hover:text-white'}`}
+            className={`px-4 py-2 rounded-lg font-medium transition ${activeTab === 'pos' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
           >
-            <ShoppingCart className="h-4 w-4" />
-            <span>Cashier / POS</span>
+            🛒 Cashier / POS
           </button>
-          <button 
-            onClick={() => setActiveTab('inventory')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition ₱{activeTab === 'inventory' ? 'bg-red-600 text-white shadow' : 'text-slate-300 hover:text-white'}`}
+          <button
+            onClick={() => setActiveTab('stocks')}
+            className={`px-4 py-2 rounded-lg font-medium transition ${activeTab === 'stocks' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
           >
-            <Package className="h-4 w-4" />
-            <span>Stocks & Prices</span>
-            {lowStockProducts.length > 0 && (
-              <span className="bg-amber-500 text-slate-900 text-xs px-1.5 py-0.5 rounded-full font-bold ml-1">
-                {lowStockProducts.length}
-              </span>
-            )}
+            📦 Stocks & Prices ({products.filter(p => p.stock < 5).length})
           </button>
-          <button 
-            onClick={() => setActiveTab('joborders')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition ₱{activeTab === 'joborders' ? 'bg-red-600 text-white shadow' : 'text-slate-300 hover:text-white'}`}
+          <button
+            onClick={() => setShowSalesModal(true)}
+            className="px-4 py-2 rounded-lg font-medium bg-emerald-600 hover:bg-emerald-500 text-white transition shadow"
           >
-            <Users className="h-4 w-4" />
-            <span>Mechanic Jobs</span>
+            📊 Daily Sales (₱{totalDailyRevenue.toLocaleString()})
           </button>
-        </nav>
+        </div>
       </header>
 
-      {/* MAIN CONTENT AREA */}
-      <div className="flex-1 overflow-hidden">
-        
-        {/* TAB 1: CASHIER / POS */}
-        {activeTab === 'pos' && (
-          <div className="flex h-full p-4 gap-4">
-            {/* LEFT SIDE: ITEM SEARCH & SELECTOR */}
-            <div className="flex-1 flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              {/* Search Header */}
-              <div className="p-4 border-b border-slate-100 flex gap-3">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Mag-search ng pyesa o gamit (e.g. Yamalube, Spark plug)..."
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                <button 
-                  onClick={addLaborFeeToCart}
-                  className="bg-amber-500 hover:bg-amber-600 text-slate-900 px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center space-x-1"
+      {/* Main Container */}
+      {activeTab === 'pos' ? (
+        <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column: Catalog */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Search & Filters */}
+            <div className="flex flex-wrap gap-3 bg-white p-4 rounded-xl shadow-sm">
+              <input
+                type="text"
+                placeholder="Mag-search ng pyesa o gamit (e.g. Yamalube, Spark plug)..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+
+            {/* Category Pills */}
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition ${
+                    selectedCategory === cat ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-200 shadow-sm'
+                  }`}
                 >
-                  <Plus className="h-4 w-4" />
-                  <span>+ Add Service / Labor</span>
+                  {cat}
                 </button>
-              </div>
+              ))}
+            </div>
 
-              {/* Categories Bar */}
-              <div className="flex px-4 py-2 bg-slate-50 border-b border-slate-100 gap-2 overflow-x-auto">
-                {categories.map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition ₱{selectedCategory === cat ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-
-              {/* Products Grid */}
-              <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 md:grid-cols-3 gap-3">
-                {filteredProducts.map(product => {
-                  const isLow = product.stock <= product.minStock;
-                  const isOut = product.stock <= 0;
-                  return (
-                    <div 
-                      key={product.id}
-                      onClick={() => !isOut && addToCart(product)}
-                      className={`p-3 border rounded-xl flex flex-col justify-between cursor-pointer transition select-none ₱{isOut ? 'opacity-40 bg-slate-100 border-slate-200 cursor-not-allowed' : 'hover:border-red-500 hover:shadow-md bg-white border-slate-200'}`}
+            {/* Product Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {filteredProducts.map((prod) => (
+                <div key={prod.id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow-md transition">
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-xs uppercase tracking-wider text-slate-400 font-bold">{prod.category}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded font-bold ${prod.stock < 5 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                        {prod.stock} {prod.unit}
+                      </span>
+                    </div>
+                    <h3 className="font-semibold text-slate-800 line-clamp-2">{prod.name}</h3>
+                  </div>
+                  <div className="mt-4 flex justify-between items-center">
+                    <span className="text-lg font-bold text-red-600">₱{prod.price.toLocaleString()}</span>
+                    <button
+                      onClick={() => addToCart(prod)}
+                      disabled={prod.stock <= 0}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-bold transition ${
+                        prod.stock > 0 ? 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                      }`}
                     >
-                      <div>
-                        <div className="flex justify-between items-start mb-1">
-                          <span className="text-xs text-slate-400 font-medium uppercase">{product.category}</span>
-                          <span className={`text-xs font-bold px-1.5 py-0.5 rounded ₱{isOut ? 'bg-red-100 text-red-700' : isLow ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>
-                            {isOut ? 'OUT OF STOCK' : `₱{product.stock} ₱{product.unit}`}
-                          </span>
-                        </div>
-                        <h3 className="font-semibold text-sm text-slate-800 line-clamp-2">{product.name}</h3>
-                      </div>
-                      <div className="mt-3 flex justify-between items-center">
-                        <span className="font-bold text-red-600 text-base">₱{product.price.toLocaleString()}</span>
-                        <span className="text-xs bg-red-50 text-red-600 font-bold px-2 py-1 rounded-md">Add +</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* RIGHT SIDE: CART & CALCULATOR */}
-            <div className="w-96 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
-              <div className="p-4 bg-slate-900 text-white flex justify-between items-center">
-                <div className="flex items-center space-x-2">
-                  <ShoppingCart className="h-5 w-5 text-red-500" />
-                  <h2 className="font-bold">Current Order</h2>
-                </div>
-                <span className="text-xs bg-slate-800 px-2.5 py-1 rounded-full text-slate-300 font-semibold">{cart.length} items</span>
-              </div>
-
-              {/* Cart List */}
-              <div className="flex-1 overflow-y-auto p-3 space-y-2 divide-y divide-slate-100">
-                {cart.length === 0 ? (
-                  <div className="text-center py-12 text-slate-400">
-                    <ShoppingCart className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">Walang laman ang cart.</p>
-                    <p className="text-xs text-slate-400">Pumili ng item sa kaliwa o mag-add ng labor.</p>
-                  </div>
-                ) : (
-                  cart.map(item => (
-                    <div key={item.id} className="pt-2 flex justify-between items-center">
-                      <div className="flex-1 pr-2">
-                        <h4 className="font-semibold text-xs text-slate-800">{item.name}</h4>
-                        <span className="text-xs text-slate-500">₱{item.price} x {item.qty}</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="flex items-center border border-slate-200 rounded-md">
-                          <button onClick={() => updateCartQty(item.id, item.qty - 1)} className="px-2 py-0.5 text-xs bg-slate-100 hover:bg-slate-200">-</button>
-                          <span className="px-2 text-xs font-bold">{item.qty}</span>
-                          <button onClick={() => updateCartQty(item.id, item.qty + 1)} className="px-2 py-0.5 text-xs bg-slate-100 hover:bg-slate-200">+</button>
-                        </div>
-                        <span className="font-bold text-xs w-16 text-right">₱{(item.price * item.qty).toLocaleString()}</span>
-                        <button onClick={() => removeFromCart(item.id)} className="text-slate-400 hover:text-red-500">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Calculator Summary */}
-              <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-3">
-                <div className="flex justify-between items-center text-sm text-slate-600">
-                  <span>Subtotal</span>
-                  <span className="font-semibold">₱{cartTotal.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center text-lg font-extrabold text-slate-900 border-t border-slate-200 pt-2">
-                  <span>TOTAL AMOUNT</span>
-                  <span className="text-red-600 text-2xl">₱{cartTotal.toLocaleString()}</span>
-                </div>
-
-                <button 
-                  disabled={cart.length === 0}
-                  onClick={() => setPaymentModal(true)}
-                  className={`w-full py-3.5 rounded-xl font-bold text-base shadow-md flex justify-center items-center space-x-2 transition ₱{cart.length === 0 ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
-                >
-                  <DollarSign className="h-5 w-5" />
-                  <span>MAG-BAYAD (CHECKOUT)</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: INVENTORY ENCODING & STOCKS */}
-        {activeTab === 'inventory' && (
-          <div className="h-full p-4 flex flex-col space-y-4">
-            {/* Action Bar */}
-            <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-              <div className="flex items-center space-x-4">
-                <h2 className="text-lg font-bold text-slate-800">Master Stock List</h2>
-                <span className="bg-slate-100 text-slate-700 text-xs px-3 py-1 rounded-full font-semibold">
-                  Total Items: {products.length}
-                </span>
-              </div>
-              
-              <button 
-                onClick={() => setProductModal(true)}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center space-x-2 shadow"
-              >
-                <Plus className="h-5 w-5" />
-                <span>+ Mag-Encode ng Bagong Item</span>
-              </button>
-            </div>
-
-            {/* Low Stock Warning Banner */}
-            {lowStockProducts.length > 0 && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between">
-                <div className="flex items-center space-x-2 text-amber-800">
-                  <AlertTriangle className="h-5 w-5 text-amber-600" />
-                  <span className="text-sm font-semibold">
-                    Mayroong ({lowStockProducts.length}) item na kailangan na ng stock replenishment!
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Table */}
-            <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-              <div className="overflow-y-auto flex-1">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-900 text-white sticky top-0">
-                    <tr>
-                      <th className="p-3">Item Name</th>
-                      <th className="p-3">Kategorya</th>
-                      <th className="p-3">Capital Price (Cost)</th>
-                      <th className="p-3">Selling Price</th>
-                      <th className="p-3">Current Stock</th>
-                      <th className="p-3">Min Alert Level</th>
-                      <th className="p-3 text-center">Aksyon</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {products.map(product => {
-                      const isLow = product.stock <= product.minStock;
-                      return (
-                        <tr key={product.id} className="hover:bg-slate-50">
-                          <td className="p-3 font-semibold text-slate-800">{product.name}</td>
-                          <td className="p-3"><span className="bg-slate-100 px-2 py-0.5 rounded text-xs text-slate-600">{product.category}</span></td>
-                          <td className="p-3 text-slate-500">₱{product.cost}</td>
-                          <td className="p-3 font-bold text-red-600">₱{product.price}</td>
-                          <td className="p-3">
-                            <span className={`px-2 py-1 rounded font-bold text-xs ₱{isLow ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'}`}>
-                              {product.stock} {product.unit}
-                            </span>
-                          </td>
-                          <td className="p-3 text-slate-400 text-xs">{product.minStock} {product.unit}</td>
-                          <td className="p-3 text-center">
-                            <button 
-                              onClick={() => setRestockItem(product)}
-                              className="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1 rounded text-xs font-semibold"
-                            >
-                              + Replenish Stock
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 3: MECHANIC JOB ORDERS */}
-        {activeTab === 'joborders' && (
-          <div className="h-full p-4 flex flex-col space-y-4">
-            <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-              <h2 className="text-lg font-bold text-slate-800">Mechanic Service Jobs</h2>
-              <button 
-                onClick={() => setNewJOModal(true)}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center space-x-2"
-              >
-                <Plus className="h-4 w-4" />
-                <span>+ Bagong Job Order</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {jobOrders.map(jo => (
-                <div key={jo.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
-                  <div className="flex justify-between items-start border-b pb-2">
-                    <div>
-                      <span className="text-xs font-bold text-slate-400">{jo.id}</span>
-                      <h3 className="font-bold text-slate-800 text-base">{jo.customer}</h3>
-                      <p className="text-xs text-slate-500">{jo.model} • <span className="font-semibold text-slate-700">{jo.plate}</span></p>
-                    </div>
-                    <span className="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-1 rounded-full">{jo.status}</span>
-                  </div>
-
-                  <div className="text-sm">
-                    <p className="text-slate-600"><strong>Assigned Mechanic:</strong> {jo.mechanic}</p>
-                    <p className="text-slate-600"><strong>Gawain / Issue:</strong> {jo.issue}</p>
-                    <p className="text-slate-600"><strong>Labor Fee:</strong> ₱{jo.laborFee}</p>
+                      {prod.stock > 0 ? 'Add +' : 'Out of Stock'}
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        )}
-      </div>
 
-      {/* PAYMENT MODAL (CALCULATOR SUKLI) */}
-      {paymentModal && (
-        <div className="fixed inset-0 bg-slate-900/60 flex justify-center items-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4">
-            <h3 className="text-xl font-bold text-slate-800 border-b pb-2">Cashier Calculator</h3>
-            
-            <div className="bg-slate-50 p-4 rounded-xl border space-y-2">
-              <div className="flex justify-between text-sm text-slate-600">
-                <span>Babayaran:</span>
-                <span className="font-bold text-slate-900">₱{cartTotal.toLocaleString()}</span>
+          {/* Right Column: Cart */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between h-[calc(100vh-140px)] sticky top-6">
+            <div>
+              <div className="flex justify-between items-center pb-4 border-b">
+                <h2 className="text-xl font-bold flex items-center gap-2">🛒 Current Order</h2>
+                <span className="text-sm bg-slate-100 px-3 py-1 rounded-full font-bold">{cart.reduce((a, b) => a + b.qty, 0)} items</span>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600">Inabot na Pera ng Customer (₱):</label>
-                <input 
-                  type="number" 
-                  autoFocus
-                  placeholder="e.g. 1000"
-                  className="w-full text-2xl font-bold p-3 border-2 border-slate-300 rounded-xl focus:border-red-500 focus:outline-none"
-                  value={amountPaid}
-                  onChange={(e) => setAmountPaid(e.target.value)}
-                />
-              </div>
-
-              <div className="flex justify-between items-center text-lg font-extrabold text-slate-900 pt-2 border-t">
-                <span>SUKLI:</span>
-                <span className={`text-2xl ₱{changeAmount < 0 ? 'text-slate-400' : 'text-emerald-600'}`}>
-                  ₱{changeAmount.toLocaleString()}
-                </span>
+              {/* Cart Items List */}
+              <div className="mt-4 space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+                {cart.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400">
+                    <p className="text-4xl mb-2">🛒</p>
+                    <p>Walang laman ang cart.</p>
+                    <p className="text-xs">Pumili ng item sa kaliwa para magdagdag.</p>
+                  </div>
+                ) : (
+                  cart.map((item) => (
+                    <div key={item.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                      <div className="flex-1 pr-2">
+                        <p className="font-semibold text-sm line-clamp-1">{item.name}</p>
+                        <p className="text-xs text-slate-500">₱{item.price} x {item.qty}</p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <button onClick={() => updateCartQty(item.id, -1)} className="w-6 h-6 rounded bg-slate-200 hover:bg-slate-300 font-bold">-</button>
+                        <span className="text-sm font-bold w-4 text-center">{item.qty}</span>
+                        <button onClick={() => updateCartQty(item.id, 1)} className="w-6 h-6 rounded bg-slate-200 hover:bg-slate-300 font-bold">+</button>
+                        <span className="text-sm font-bold text-slate-800 ml-2">₱{(item.price * item.qty).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
-            <div className="flex space-x-2 pt-2">
-              <button 
-                onClick={() => setPaymentModal(false)}
-                className="flex-1 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl"
+            {/* Total & Checkout */}
+            <div className="pt-4 border-t space-y-3">
+              <div className="flex justify-between items-center text-lg">
+                <span className="text-slate-500 font-medium">Subtotal</span>
+                <span className="font-bold">₱{totalAmount.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center text-xl font-black text-red-600">
+                <span>TOTAL AMOUNT</span>
+                <span>₱{totalAmount.toLocaleString()}</span>
+              </div>
+              <button
+                onClick={handleCheckout}
+                disabled={cart.length === 0}
+                className={`w-full py-4 rounded-xl font-bold text-lg text-white transition shadow-lg ${
+                  cart.length > 0 ? 'bg-red-600 hover:bg-red-500 active:scale-95' : 'bg-slate-300 cursor-not-allowed'
+                }`}
               >
-                Cancel
+                ₱ MAG-BAYAD (CHECKOUT)
               </button>
-              <button 
-                onClick={handleCompleteSale}
-                className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow"
-              >
-                Kumpletuhin ang Benta
-              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Stocks & Prices Management View */
+        <div className="p-6 max-w-5xl mx-auto">
+          <div className="bg-white p-6 rounded-xl shadow-sm border">
+            <h2 className="text-2xl font-bold mb-4">📦 Inventory & Stock List</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 border-b text-slate-600 text-sm">
+                    <th className="p-3">Item Name</th>
+                    <th className="p-3">Category</th>
+                    <th className="p-3">Price</th>
+                    <th className="p-3">Available Stock</th>
+                    <th className="p-3">Unit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map((p) => (
+                    <tr key={p.id} className="border-b hover:bg-slate-50">
+                      <td className="p-3 font-semibold">{p.name}</td>
+                      <td className="p-3 text-sm text-slate-500">{p.category}</td>
+                      <td className="p-3 font-bold text-red-600">₱{p.price.toLocaleString()}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded text-xs font-bold ${p.stock < 5 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                          {p.stock}
+                        </span>
+                      </td>
+                      <td className="p-3 text-sm">{p.unit}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       )}
 
-      {/* NEW PRODUCT MODAL */}
-      {productModal && (
-        <div className="fixed inset-0 bg-slate-900/60 flex justify-center items-center p-4 z-50">
-          <form onSubmit={handleSaveProduct} className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4">
-            <h3 className="text-lg font-bold text-slate-800 border-b pb-2">Mag-encode ng Bagong Item</h3>
-            
-            <div className="space-y-3 text-sm">
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">Pangalan ng Pyesa / Item</label>
-                <input 
-                  type="text" 
-                  required
-                  placeholder="e.g. Yamalube 10W-40"
-                  className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none"
-                  value={newProduct.name}
-                  onChange={e => setNewProduct({...newProduct, name: e.target.value})}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Kategorya</label>
-                  <select 
-                    className="w-full p-2.5 border rounded-lg"
-                    value={newProduct.category}
-                    onChange={e => setNewProduct({...newProduct, category: e.target.value})}
-                  >
-                    <option value="Engine Oil">Engine Oil</option>
-                    <option value="Electrical">Electrical</option>
-                    <option value="Tires">Tires</option>
-                    <option value="Brake System">Brake System</option>
-                    <option value="Engine Parts">Engine Parts</option>
-                    <option value="Accessories">Accessories</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Unit</label>
-                  <input 
-                    type="text" 
-                    placeholder="pcs, bottle, set"
-                    className="w-full p-2.5 border rounded-lg"
-                    value={newProduct.unit}
-                    onChange={e => setNewProduct({...newProduct, unit: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Puhunan (Cost ₱)</label>
-                  <input 
-                    type="number" 
-                    placeholder="190"
-                    className="w-full p-2.5 border rounded-lg"
-                    value={newProduct.cost}
-                    onChange={e => setNewProduct({...newProduct, cost: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Benta (Price ₱)</label>
-                  <input 
-                    type="number" 
-                    required
-                    placeholder="250"
-                    className="w-full p-2.5 border rounded-lg font-bold text-red-600"
-                    value={newProduct.price}
-                    onChange={e => setNewProduct({...newProduct, price: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Initial Stock Count</label>
-                  <input 
-                    type="number" 
-                    placeholder="20"
-                    className="w-full p-2.5 border rounded-lg"
-                    value={newProduct.stock}
-                    onChange={e => setNewProduct({...newProduct, stock: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Min Replenish Alert</label>
-                  <input 
-                    type="number" 
-                    placeholder="5"
-                    className="w-full p-2.5 border rounded-lg"
-                    value={newProduct.minStock}
-                    onChange={e => setNewProduct({...newProduct, minStock: e.target.value})}
-                  />
-                </div>
-              </div>
+      {/* Daily Sales History Modal */}
+      {showSalesModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+          <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="bg-slate-900 text-white p-4 flex justify-between items-center">
+              <h3 className="text-xl font-bold flex items-center gap-2">📊 Daily Sales Log & Reports</h3>
+              <button onClick={() => setShowSalesModal(false)} className="text-slate-400 hover:text-white font-bold text-xl">✕</button>
             </div>
 
-            <div className="flex space-x-2 pt-2">
-              <button type="button" onClick={() => setProductModal(false)} className="flex-1 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl">Cancel</button>
-              <button type="submit" className="flex-1 py-2.5 bg-red-600 text-white font-bold rounded-xl shadow">Save Item</button>
-            </div>
-          </form>
-        </div>
-      )}
+            <div className="p-6 overflow-y-auto flex-1 space-y-4">
+              <div className="flex justify-between items-center bg-emerald-50 p-4 rounded-xl border border-emerald-200">
+                <div>
+                  <p className="text-xs uppercase text-emerald-600 font-bold">Kabuuang Benta (Total Revenue)</p>
+                  <p className="text-3xl font-black text-emerald-700">₱{totalDailyRevenue.toLocaleString()}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-slate-500">Kabuuang Transaksyon</p>
+                  <p className="text-xl font-bold text-slate-700">{salesHistory.length} Orders</p>
+                </div>
+              </div>
 
-      {/* RESTOCK MODAL */}
-      {restockItem && (
-        <div className="fixed inset-0 bg-slate-900/60 flex justify-center items-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 space-y-4">
-            <h3 className="text-lg font-bold text-slate-800">Replenish Stock</h3>
-            <p className="text-sm text-slate-600">Magdagdag ng dagdag na stock para sa: <br/><strong className="text-slate-900">{restockItem.name}</strong></p>
-            
-            <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">Ilang pcs/items ang idadagdag?</label>
-              <input 
-                type="number" 
-                autoFocus
-                placeholder="e.g. 10"
-                className="w-full text-xl font-bold p-3 border rounded-xl"
-                value={restockQty}
-                onChange={e => setRestockQty(e.target.value)}
-              />
+              {salesHistory.length === 0 ? (
+                <div className="text-center py-8 text-slate-400">
+                  <p>Wala pang nabebenta ngayong araw.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {salesHistory.map((sale) => (
+                    <div key={sale.id} className="border rounded-xl p-4 bg-slate-50 space-y-2">
+                      <div className="flex justify-between items-center border-b pb-2">
+                        <span className="text-xs font-bold text-slate-500">🕒 {sale.date} - {sale.time}</span>
+                        <span className="font-black text-red-600">Total: ₱{sale.total.toLocaleString()}</span>
+                      </div>
+                      <ul className="text-sm space-y-1">
+                        {sale.items.map((item, idx) => (
+                          <li key={idx} className="flex justify-between text-slate-700">
+                            <span>• {item.name} x {item.qty}</span>
+                            <span className="font-semibold">₱{(item.price * item.qty).toLocaleString()}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div className="flex space-x-2">
-              <button onClick={() => setRestockItem(null)} className="flex-1 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl">Cancel</button>
-              <button onClick={handleRestock} className="flex-1 py-2.5 bg-emerald-600 text-white font-bold rounded-xl shadow">+ Dagdag Stock</button>
+            {/* Modal Actions Footer */}
+            <div className="p-4 bg-slate-100 border-t flex justify-between items-center">
+              <button
+                onClick={clearSalesHistory}
+                className="px-4 py-2 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded-lg text-sm font-bold transition"
+              >
+                🗑 Reset Sales Today
+              </button>
+              <div className="space-x-2">
+                <button
+                  onClick={handlePrint}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-bold transition"
+                >
+                  🖨 Print Summary
+                </button>
+                <button
+                  onClick={() => setShowSalesModal(false)}
+                  className="px-4 py-2 bg-slate-300 hover:bg-slate-400 text-slate-800 rounded-lg text-sm font-bold transition"
+                >
+                  Isara
+                </button>
+              </div>
             </div>
           </div>
         </div>
