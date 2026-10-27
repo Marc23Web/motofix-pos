@@ -212,10 +212,19 @@ export default function App() {
     window.print();
   };
 
+  // Fixed Smart Search Logic (Name & Category Matching)
   const filteredProducts = products.filter((prod) => {
+    const term = searchTerm.toLowerCase().trim();
     const matchesCategory = selectedCategory === 'All' || prod.category === selectedCategory;
-    const matchesSearch = prod.name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
+    
+    const matchesSearch =
+      prod.name.toLowerCase().includes(term) ||
+      prod.category.toLowerCase().includes(term);
+
+    if (term !== '') {
+      return matchesSearch; // Kapag may itina-type, hahanapin sa LAHAT ng items
+    }
+    return matchesCategory;
   });
 
   const todayStr = new Date().toLocaleDateString('en-PH');
@@ -324,7 +333,7 @@ export default function App() {
             <div className="flex flex-wrap gap-3 bg-white p-4 rounded-xl shadow-sm">
               <input
                 type="text"
-                placeholder="Mag-search ng pyesa o gamit..."
+                placeholder="Mag-search ng pyesa o gamit (e.g. oil, plug, pad)..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
@@ -335,9 +344,12 @@ export default function App() {
               {categories.map((cat) => (
                 <button
                   key={cat}
-                  onClick={() => setSelectedCategory(cat)}
+                  onClick={() => {
+                    setSelectedCategory(cat);
+                    setSearchTerm(''); // Clear search kapag nag-click ng category
+                  }}
                   className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition ${
-                    selectedCategory === cat ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-200 shadow-sm'
+                    selectedCategory === cat && searchTerm === '' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-200 shadow-sm'
                   }`}
                 >
                   {cat}
