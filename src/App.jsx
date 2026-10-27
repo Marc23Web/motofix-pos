@@ -42,8 +42,9 @@ export default function App() {
   const [recoveryInput, setRecoveryInput] = useState('');
   const [newPinInput, setNewPinInput] = useState('');
 
-  // Change Own PIN Modal State (For Logged-in User)
-  const [showChangePinModal, setShowChangePinModal] = useState(false);
+  // Edit Profile Modal State (Name & PIN for Logged-in User)
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [editNameInput, setEditNameInput] = useState('');
   const [oldPinInput, setOldPinInput] = useState('');
   const [changeNewPinInput, setChangeNewPinInput] = useState('');
 
@@ -162,23 +163,33 @@ export default function App() {
     setNewPinInput('');
   };
 
-  const handleChangeOwnPin = (e) => {
+  const handleOpenEditProfile = () => {
+    setEditNameInput(currentUser?.name || '');
+    setOldPinInput('');
+    setChangeNewPinInput('');
+    setShowEditProfileModal(true);
+  };
+
+  const handleSaveProfile = (e) => {
     e.preventDefault();
-    if (oldPinInput.trim() !== currentUser.pin) {
-      return alert('Maling lumang PIN Code!');
+    if (!editNameInput.trim()) {
+      return alert('Paki-lagay ang iyong pangalan!');
     }
 
-    if (!changeNewPinInput.trim()) {
-      return alert('Paki-lagay ang bagong PIN Code!');
+    if (oldPinInput.trim() !== currentUser.pin) {
+      return alert('Maling kasalukuyang PIN Code!');
     }
+
+    const updatedPin = changeNewPinInput.trim() ? changeNewPinInput.trim() : currentUser.pin;
 
     setUsers((prev) =>
-      prev.map((u) => (u.id === currentUser.id ? { ...u, pin: changeNewPinInput.trim() } : u))
+      prev.map((u) => (u.id === currentUser.id ? { ...u, name: editNameInput.trim(), pin: updatedPin } : u))
     );
-    setCurrentUser((prev) => ({ ...prev, pin: changeNewPinInput.trim() }));
 
-    alert('Matagumpay na nabago ang iyong PIN Code!');
-    setShowChangePinModal(false);
+    setCurrentUser((prev) => ({ ...prev, name: editNameInput.trim(), pin: updatedPin }));
+
+    alert('Matagumpay na na-update ang iyong Profile details!');
+    setShowEditProfileModal(false);
     setOldPinInput('');
     setChangeNewPinInput('');
   };
@@ -561,10 +572,10 @@ export default function App() {
             👤 {currentUser.name} ({currentUser.role})
           </span>
           <button
-            onClick={() => setShowChangePinModal(true)}
+            onClick={handleOpenEditProfile}
             className="text-[8px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded font-bold border border-slate-700"
           >
-            ✏️ Change PIN
+            ✏️ Edit Profile
           </button>
         </div>
 
@@ -945,22 +956,34 @@ export default function App() {
         </div>
       )}
 
-      {/* Change Own PIN Modal (For Any Logged-in User) */}
-      {showChangePinModal && (
+      {/* Edit Own Profile Modal (Name & PIN Change for Any Logged-in User) */}
+      {showEditProfileModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-3">
           <div className="bg-white w-full max-w-xs rounded-xl shadow-2xl p-4 space-y-3 text-slate-800 text-xs">
             <div className="flex justify-between items-center border-b pb-2">
-              <h3 className="font-bold text-xs text-slate-900">✏️ Baguhin ang Aking PIN</h3>
-              <button onClick={() => setShowChangePinModal(false)} className="text-slate-400 font-bold">✕</button>
+              <h3 className="font-bold text-xs text-slate-900">✏️ Edit My Profile & PIN</h3>
+              <button onClick={() => setShowEditProfileModal(false)} className="text-slate-400 font-bold">✕</button>
             </div>
 
-            <form onSubmit={handleChangeOwnPin} className="space-y-2.5">
+            <form onSubmit={handleSaveProfile} className="space-y-2.5">
               <div>
-                <label className="font-bold text-[10px]">Kasalukuyang PIN (Old PIN)</label>
+                <label className="font-bold text-[10px]">Name / Display Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Your Name"
+                  value={editNameInput}
+                  onChange={(e) => setEditNameInput(e.target.value)}
+                  className="w-full border rounded p-1.5 text-xs mt-0.5 font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-[10px]">Current PIN Code (Kailangan ibigay)</label>
                 <input
                   type="password"
                   required
-                  placeholder="Enter current PIN"
+                  placeholder="Kasalukuyang PIN"
                   value={oldPinInput}
                   onChange={(e) => setOldPinInput(e.target.value)}
                   className="w-full border rounded p-1.5 text-xs mt-0.5 text-center font-bold"
@@ -968,11 +991,10 @@ export default function App() {
               </div>
 
               <div>
-                <label className="font-bold text-[10px]">Bagong PIN (New PIN)</label>
+                <label className="font-bold text-[10px]">New PIN Code (Optional)</label>
                 <input
                   type="password"
-                  required
-                  placeholder="Bagong PIN"
+                  placeholder="Iwanang blangko kung ayaw baguhin"
                   value={changeNewPinInput}
                   onChange={(e) => setChangeNewPinInput(e.target.value)}
                   className="w-full border rounded p-1.5 text-xs mt-0.5 text-center font-bold"
@@ -982,7 +1004,7 @@ export default function App() {
               <div className="flex justify-end gap-1.5 pt-2 border-t">
                 <button
                   type="button"
-                  onClick={() => setShowChangePinModal(false)}
+                  onClick={() => setShowEditProfileModal(false)}
                   className="px-3 py-1 bg-slate-200 rounded text-xs font-bold"
                 >
                   Cancel
@@ -991,7 +1013,7 @@ export default function App() {
                   type="submit"
                   className="px-3 py-1 bg-red-600 text-white rounded text-xs font-bold"
                 >
-                  Save New PIN
+                  Save Profile
                 </button>
               </div>
             </form>
