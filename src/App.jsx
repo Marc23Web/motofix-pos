@@ -5,6 +5,8 @@ const DEFAULT_USERS = [
   { id: 2, name: 'Cashier 1', role: 'cashier', pin: '0000' }
 ];
 
+const MASTER_RECOVERY_CODE = 'MOTOFIX-ADMIN'; // Secret Key para sa Forgot PIN Reset
+
 const DEFAULT_PRODUCTS = [
   { id: 1, code: 'OIL-001', name: 'Yamalube AT 10W-40 (800ml)', category: 'Engine Oil', price: 280, stock: 24, unit: 'pcs' },
   { id: 2, code: 'OIL-002', name: 'Shell Advance AX7 10W-40 (1L)', category: 'Engine Oil', price: 340, stock: 15, unit: 'pcs' },
@@ -34,6 +36,11 @@ export default function App() {
 
   const [loginPin, setLoginPin] = useState('');
   const [selectedUserId, setSelectedUserId] = useState(users[0]?.id || '');
+
+  // Forgot PIN Reset Modal State
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [recoveryInput, setRecoveryInput] = useState('');
+  const [newPinInput, setNewPinInput] = useState('');
 
   // User Management Form (Admin Only)
   const [showUsersModal, setShowUsersModal] = useState(false);
@@ -128,6 +135,26 @@ export default function App() {
     } else {
       alert('Maling PIN Code!');
     }
+  };
+
+  const handleForgotPinReset = (e) => {
+    e.preventDefault();
+    if (recoveryInput.trim() !== MASTER_RECOVERY_CODE) {
+      return alert('Maling Master Recovery Code!');
+    }
+
+    if (!newPinInput.trim()) {
+      return alert('Paki-lagay ang bagong PIN Code!');
+    }
+
+    setUsers((prev) =>
+      prev.map((u) => (u.id === Number(selectedUserId) ? { ...u, pin: newPinInput.trim() } : u))
+    );
+
+    alert('Matagumpay na pinalitan ang iyong PIN Code! Pwede ka nang mag-login.');
+    setShowForgotModal(false);
+    setRecoveryInput('');
+    setNewPinInput('');
   };
 
   const handleLogout = () => {
@@ -378,7 +405,7 @@ export default function App() {
     return { name: mech, totalLabor, jobCount };
   });
 
-  // 1. LOGIN SCREEN (If not logged in)
+  // 1. LOGIN SCREEN WITH FORGOT PIN BUTTON
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-slate-900 flex justify-center items-center p-3 font-sans text-xs">
@@ -405,11 +432,20 @@ export default function App() {
             </div>
 
             <div>
-              <label className="font-bold text-[10px] text-slate-600">PIN Code</label>
+              <div className="flex justify-between items-center">
+                <label className="font-bold text-[10px] text-slate-600">PIN Code</label>
+                <button
+                  type="button"
+                  onClick={() => setShowForgotModal(true)}
+                  className="text-[9px] text-red-600 font-bold hover:underline"
+                >
+                  Forgot PIN?
+                </button>
+              </div>
               <input
                 type="password"
                 required
-                placeholder="4-digit PIN (Default: 1234 / 0000)"
+                placeholder="Enter PIN Code"
                 value={loginPin}
                 onChange={(e) => setLoginPin(e.target.value)}
                 className="w-full border rounded p-2 mt-0.5 text-center font-bold text-base tracking-widest bg-slate-50"
@@ -422,11 +458,66 @@ export default function App() {
           </form>
 
           <div className="bg-slate-100 p-2 rounded text-[9px] text-slate-500 space-y-0.5">
-            <p className="font-bold text-slate-700">Default Logins:</p>
+            <p className="font-bold text-slate-700">Default Credentials:</p>
             <p>• Owner (Master): PIN <b>1234</b></p>
             <p>• Cashier 1: PIN <b>0000</b></p>
+            <p className="text-amber-700 font-semibold mt-1">🔑 Reset Secret Key: <b>MOTOFIX-ADMIN</b></p>
           </div>
         </div>
+
+        {/* FORGOT PIN RESET MODAL */}
+        {showForgotModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-3">
+            <div className="bg-white w-full max-w-xs rounded-xl shadow-2xl p-4 space-y-3 text-slate-800">
+              <div className="flex justify-between items-center border-b pb-2">
+                <h3 className="font-bold text-xs text-red-600">🔑 Reset Account PIN</h3>
+                <button onClick={() => setShowForgotModal(false)} className="text-slate-400 font-bold">✕</button>
+              </div>
+
+              <form onSubmit={handleForgotPinReset} className="space-y-2.5">
+                <div>
+                  <label className="font-bold text-[10px]">Master Recovery Code</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Enter MOTOFIX-ADMIN"
+                    value={recoveryInput}
+                    onChange={(e) => setRecoveryInput(e.target.value)}
+                    className="w-full border rounded p-1.5 text-xs mt-0.5"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-[10px]">New 4-Digit PIN</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Bagong PIN"
+                    value={newPinInput}
+                    onChange={(e) => setNewPinInput(e.target.value)}
+                    className="w-full border rounded p-1.5 text-xs mt-0.5 font-bold text-center"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-1.5 pt-2 border-t">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotModal(false)}
+                    className="px-3 py-1 bg-slate-200 rounded text-xs font-bold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-3 py-1 bg-red-600 text-white rounded text-xs font-bold"
+                  >
+                    Reset PIN
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
