@@ -40,12 +40,13 @@ export default function App() {
   // Payment Breakdown States
   const [discount, setDiscount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('Cash');
+  const [referenceNo, setReferenceNo] = useState('');
   const [amountTendered, setAmountTendered] = useState('');
 
   // Mechanic Add State
   const [newMechanicName, setNewMechanicName] = useState('');
 
-  // Inventory Management Modal State
+  // Inventory Management State
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
   const [prodForm, setProdForm] = useState({ code: '', name: '', category: 'Engine Oil', price: '', stock: '', unit: 'pcs' });
@@ -171,7 +172,6 @@ export default function App() {
     );
   };
 
-  // Mechanics Management
   const handleAddMechanic = (e) => {
     e.preventDefault();
     if (!newMechanicName.trim()) return alert('Paki-lagay ang pangalan ng mekaniko!');
@@ -195,7 +195,7 @@ export default function App() {
 
   const handleCheckoutOnly = () => {
     if (cart.length === 0) return alert('Walang laman ang cart!');
-    if (tenderedNum < totalAmount) {
+    if (paymentMethod === 'Cash' && tenderedNum < totalAmount) {
       return alert('Kulang ang ibinayad na pera (Amount Tendered)!');
     }
 
@@ -208,8 +208,9 @@ export default function App() {
       discount: Number(discount),
       total: totalAmount,
       paymentMethod,
-      amountTendered: tenderedNum,
-      change
+      referenceNo: paymentMethod !== 'Cash' ? referenceNo : '',
+      amountTendered: paymentMethod === 'Cash' ? tenderedNum : totalAmount,
+      change: paymentMethod === 'Cash' ? change : 0
     };
 
     // Deduct stock
@@ -224,12 +225,20 @@ export default function App() {
     );
 
     setSalesHistory([newSale, ...salesHistory]);
-    alert(`Checkout Complete!\nTotal: ₱${totalAmount.toLocaleString()}\nSukli: ₱${change.toLocaleString()}`);
+    
+    let msg = `Checkout Complete!\nTotal: ₱${totalAmount.toLocaleString()}`;
+    if (paymentMethod !== 'Cash' && referenceNo) {
+      msg += `\nPayment: ${paymentMethod} (Ref: ${referenceNo})`;
+    } else {
+      msg += `\nSukli: ₱${change.toLocaleString()}`;
+    }
+    alert(msg);
 
-    // Reset Cart & Payment
+    // Reset Cart & Payment Form
     setCart([]);
     setDiscount(0);
     setAmountTendered('');
+    setReferenceNo('');
   };
 
   const clearSalesHistory = () => {
@@ -255,7 +264,6 @@ export default function App() {
     return <span className="bg-emerald-100 text-emerald-700 font-bold px-1 rounded text-[8px]">{stock} In Stock</span>;
   };
 
-  // Date Filtering for Sales History
   const todayStr = new Date().toLocaleDateString('en-PH');
   const yesterdayObj = new Date();
   yesterdayObj.setDate(yesterdayObj.getDate() - 1);
@@ -367,7 +375,7 @@ export default function App() {
                 <button onClick={() => setCart([])} className="text-[9px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-300">Clear</button>
               </div>
 
-              <div className="mt-2 space-y-1 max-h-[38vh] overflow-y-auto pr-0.5">
+              <div className="mt-2 space-y-1 max-h-[35vh] overflow-y-auto pr-0.5">
                 {cart.length === 0 ? (
                   <div className="text-center py-8 text-slate-600">
                     <p className="text-xl mb-1">🛒</p>
@@ -432,21 +440,37 @@ export default function App() {
                   </select>
                 </div>
 
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Amount Tendered</span>
-                  <input
-                    type="number"
-                    placeholder="₱0.00"
-                    value={amountTendered}
-                    onChange={(e) => setAmountTendered(e.target.value)}
-                    className="w-20 bg-slate-800 border border-slate-700 rounded text-right px-1 py-0.5 text-red-400 font-bold text-[10px]"
-                  />
-                </div>
+                {/* Dynamic Slot for Reference No. or Amount Tendered */}
+                {paymentMethod !== 'Cash' ? (
+                  <div className="flex justify-between items-center">
+                    <span className="text-amber-400 font-bold">Ref / Payment No.</span>
+                    <input
+                      type="text"
+                      placeholder="e.g. 10023485"
+                      value={referenceNo}
+                      onChange={(e) => setReferenceNo(e.target.value)}
+                      className="w-24 bg-slate-800 border border-amber-500/50 rounded text-right px-1 py-0.5 text-amber-300 font-bold text-[9px]"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400">Amount Tendered</span>
+                      <input
+                        type="number"
+                        placeholder="₱0.00"
+                        value={amountTendered}
+                        onChange={(e) => setAmountTendered(e.target.value)}
+                        className="w-20 bg-slate-800 border border-slate-700 rounded text-right px-1 py-0.5 text-red-400 font-bold text-[10px]"
+                      />
+                    </div>
 
-                <div className="flex justify-between items-center font-bold text-amber-400">
-                  <span>Change</span>
-                  <span>₱{change.toFixed(2)}</span>
-                </div>
+                    <div className="flex justify-between items-center font-bold text-amber-400">
+                      <span>Change</span>
+                      <span>₱{change.toFixed(2)}</span>
+                    </div>
+                  </>
+                )}
               </div>
 
               <button
@@ -502,7 +526,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Complete Inventory / Stocks Tab (FULL CRUD Table Restored) */}
+      {/* Stocks Tab */}
       {activeTab === 'stocks' && (
         <div className="p-4 max-w-4xl mx-auto space-y-3">
           <div className="flex justify-between items-center bg-white p-3 rounded shadow border">
@@ -630,7 +654,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Sales Report Modal */}
+      {/* Sales Report Modal with Reference No. Display */}
       {showSalesModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-3">
           <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col text-xs">
@@ -703,9 +727,16 @@ export default function App() {
                       {sale.discount > 0 && (
                         <div className="text-[9px] text-rose-500 text-right pt-0.5">Discount: -₱{sale.discount.toFixed(2)}</div>
                       )}
-                      <div className="flex justify-between text-[9px] text-slate-400 pt-1 border-t">
-                        <span>Payment: {sale.paymentMethod || 'Cash'}</span>
-                        <span>Inabot: ₱{(sale.amountTendered || 0).toFixed(2)} | Sukli: ₱{(sale.change || 0).toFixed(2)}</span>
+                      <div className="flex justify-between text-[9px] text-slate-500 pt-1 border-t">
+                        <span className="font-bold">
+                          Payment: {sale.paymentMethod || 'Cash'}
+                          {sale.referenceNo && <span className="text-amber-600 ml-1">(Ref: {sale.referenceNo})</span>}
+                        </span>
+                        {sale.paymentMethod === 'Cash' ? (
+                          <span>Inabot: ₱{(sale.amountTendered || 0).toFixed(2)} | Sukli: ₱{(sale.change || 0).toFixed(2)}</span>
+                        ) : (
+                          <span className="text-emerald-600 font-bold">PAID ONLINE</span>
+                        )}
                       </div>
                     </div>
                   ))}
