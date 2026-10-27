@@ -194,6 +194,12 @@ export default function App() {
     setAmountTendered('');
   };
 
+  const clearSalesHistory = () => {
+    if (window.confirm('Sigurado ka bang gusto mong i-reset ang LAHAT ng Sales History? Hindi na ito mababawi.')) {
+      setSalesHistory([]);
+    }
+  };
+
   const filteredProducts = products.filter((prod) => {
     const term = searchTerm.toLowerCase().trim();
     const matchesCategory = selectedCategory === 'All' || prod.category === selectedCategory;
@@ -211,12 +217,20 @@ export default function App() {
     return <span className="bg-emerald-100 text-emerald-700 font-bold px-1 rounded text-[8px]">{stock} In Stock</span>;
   };
 
+  // Date Filtering for Sales History
   const todayStr = new Date().toLocaleDateString('en-PH');
+  const yesterdayObj = new Date();
+  yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+  const yesterdayStr = yesterdayObj.toLocaleDateString('en-PH');
+
   const filteredSalesHistory = salesHistory.filter((sale) => {
     if (salesDateFilter === 'today') return sale.date === todayStr;
+    if (salesDateFilter === 'yesterday') return sale.date === yesterdayStr;
     return true;
   });
+
   const todayRevenue = salesHistory.filter((s) => s.date === todayStr).reduce((sum, s) => sum + s.total, 0);
+  const filteredTotalRevenue = filteredSalesHistory.reduce((sum, s) => sum + s.total, 0);
 
   const mechanicEarnings = mechanics.map((mech) => {
     let totalLabor = 0;
@@ -234,7 +248,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-800 text-[11px]">
-      {/* Complete Header with Mechanics Button */}
+      {/* Header */}
       <header className="bg-slate-900 text-white px-3 py-2 flex flex-wrap justify-between items-center shadow">
         <div className="flex items-center space-x-2">
           <span className="text-base font-bold text-red-500">🔧 MotoFix POS</span>
@@ -349,7 +363,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Complete Order Only Button */}
+            {/* Complete Order Button */}
             <div className="pt-2 border-t border-slate-800 space-y-1.5 text-[10px]">
               <div className="flex justify-between text-slate-400">
                 <span>Subtotal</span>
@@ -466,21 +480,105 @@ export default function App() {
         </div>
       )}
 
-      {/* Sales Modal */}
+      {/* Complete Sales Report Modal with Full History */}
       {showSalesModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-3">
-          <div className="bg-white w-full max-w-xl rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col text-xs">
+          <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col text-xs">
             <div className="bg-slate-900 text-white p-3 flex justify-between items-center">
-              <h3 className="text-sm font-bold">📊 Sales History & Reports</h3>
+              <h3 className="text-sm font-bold flex items-center gap-1.5">📊 Daily Sales Log & History</h3>
               <button onClick={() => setShowSalesModal(false)} className="text-slate-400 hover:text-white font-bold text-base">✕</button>
             </div>
+
             <div className="p-4 overflow-y-auto flex-1 space-y-3">
-              <div className="flex justify-between items-center bg-emerald-50 p-3 rounded border border-emerald-200">
-                <div>
-                  <p className="text-[10px] uppercase text-emerald-600 font-bold">Total Sales Today</p>
-                  <p className="text-2xl font-black text-emerald-700">₱{todayRevenue.toFixed(2)}</p>
+              {/* Date Filter Bar */}
+              <div className="flex justify-between items-center bg-slate-100 p-2 rounded border">
+                <span className="font-bold text-slate-700 text-[10px]">📅 Date Filter:</span>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setSalesDateFilter('today')}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold ${salesDateFilter === 'today' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border'}`}
+                  >
+                    Ngayong Araw
+                  </button>
+                  <button
+                    onClick={() => setSalesDateFilter('yesterday')}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold ${salesDateFilter === 'yesterday' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border'}`}
+                  >
+                    Kahapon
+                  </button>
+                  <button
+                    onClick={() => setSalesDateFilter('all')}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold ${salesDateFilter === 'all' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border'}`}
+                  >
+                    Lahat (All Time)
+                  </button>
                 </div>
               </div>
+
+              {/* Total Revenue Summary Box */}
+              <div className="flex justify-between items-center bg-emerald-50 p-3 rounded border border-emerald-200">
+                <div>
+                  <p className="text-[10px] uppercase text-emerald-600 font-bold">
+                    Kabuuang Benta ({salesDateFilter === 'today' ? 'Today' : salesDateFilter === 'yesterday' ? 'Yesterday' : 'All Time'})
+                  </p>
+                  <p className="text-2xl font-black text-emerald-700">₱{filteredTotalRevenue.toFixed(2)}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] text-slate-500">Total Transactions</p>
+                  <p className="text-sm font-bold text-slate-700">{filteredSalesHistory.length} Orders</p>
+                </div>
+              </div>
+
+              {/* Detailed Transactions List */}
+              {filteredSalesHistory.length === 0 ? (
+                <div className="text-center py-8 text-slate-400">
+                  <p>Walang naitalang benta sa napiling petsa.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredSalesHistory.map((sale) => (
+                    <div key={sale.id} className="border rounded-lg p-2.5 bg-slate-50 space-y-1">
+                      <div className="flex justify-between items-center border-b pb-1">
+                        <span className="text-[10px] font-bold text-slate-500">🕒 {sale.date} - {sale.time}</span>
+                        <span className="font-black text-red-600">Total: ₱{sale.total.toFixed(2)}</span>
+                      </div>
+                      <ul className="space-y-0.5 text-[10px] pt-1">
+                        {sale.items.map((item, idx) => (
+                          <li key={idx} className="flex justify-between text-slate-700">
+                            <span>
+                              • {item.name} x {item.qty}
+                              {item.type === 'service' && <span className="text-[9px] text-amber-600 font-bold ml-1">({item.mechanic})</span>}
+                            </span>
+                            <span className="font-semibold">₱{(item.price * item.qty).toFixed(2)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {sale.discount > 0 && (
+                        <div className="text-[9px] text-rose-500 text-right pt-0.5">Discount: -₱{sale.discount.toFixed(2)}</div>
+                      )}
+                      <div className="flex justify-between text-[9px] text-slate-400 pt-1 border-t">
+                        <span>Payment: {sale.paymentMethod || 'Cash'}</span>
+                        <span>Inabot: ₱{(sale.amountTendered || 0).toFixed(2)} | Sukli: ₱{(sale.change || 0).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-3 bg-slate-100 border-t flex justify-between items-center">
+              <button
+                onClick={clearSalesHistory}
+                className="px-3 py-1 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded text-xs font-bold transition"
+              >
+                🗑 Reset All History
+              </button>
+              <button
+                onClick={() => setShowSalesModal(false)}
+                className="px-3 py-1 bg-slate-300 hover:bg-slate-400 text-slate-800 rounded text-xs font-bold transition"
+              >
+                Isara
+              </button>
             </div>
           </div>
         </div>
