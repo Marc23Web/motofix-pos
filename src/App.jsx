@@ -42,6 +42,11 @@ export default function App() {
   const [recoveryInput, setRecoveryInput] = useState('');
   const [newPinInput, setNewPinInput] = useState('');
 
+  // Change Own PIN Modal State (For Logged-in User)
+  const [showChangePinModal, setShowChangePinModal] = useState(false);
+  const [oldPinInput, setOldPinInput] = useState('');
+  const [changeNewPinInput, setChangeNewPinInput] = useState('');
+
   // User Management Form (Admin Only)
   const [showUsersModal, setShowUsersModal] = useState(false);
   const [newUserName, setNewUserName] = useState('');
@@ -155,6 +160,36 @@ export default function App() {
     setShowForgotModal(false);
     setRecoveryInput('');
     setNewPinInput('');
+  };
+
+  const handleChangeOwnPin = (e) => {
+    e.preventDefault();
+    if (oldPinInput.trim() !== currentUser.pin) {
+      return alert('Maling lumang PIN Code!');
+    }
+
+    if (!changeNewPinInput.trim()) {
+      return alert('Paki-lagay ang bagong PIN Code!');
+    }
+
+    setUsers((prev) =>
+      prev.map((u) => (u.id === currentUser.id ? { ...u, pin: changeNewPinInput.trim() } : u))
+    );
+    setCurrentUser((prev) => ({ ...prev, pin: changeNewPinInput.trim() }));
+
+    alert('Matagumpay na nabago ang iyong PIN Code!');
+    setShowChangePinModal(false);
+    setOldPinInput('');
+    setChangeNewPinInput('');
+  };
+
+  const handleResetUserToDefault = (userId, userName) => {
+    if (window.confirm(`I-reset ang PIN Code ni ${userName} sa default ("0000")?`)) {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, pin: '0000' } : u))
+      );
+      alert(`Ang PIN Code ni ${userName} ay na-reset na sa "0000". Pwede na niya itong baguhin pagka-login.`);
+    }
   };
 
   const handleLogout = () => {
@@ -405,7 +440,7 @@ export default function App() {
     return { name: mech, totalLabor, jobCount };
   });
 
-  // 1. SECURE LOGIN SCREEN (No Passwords Displayed)
+  // 1. SECURE LOGIN SCREEN
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-slate-900 flex justify-center items-center p-3 font-sans text-xs">
@@ -522,9 +557,15 @@ export default function App() {
       <header className="bg-slate-900 text-white px-3 py-2 flex flex-wrap justify-between items-center shadow">
         <div className="flex items-center space-x-2">
           <span className="text-base font-bold text-red-500">🔧 MotoFix POS</span>
-          <span className="text-[9px] bg-slate-800 text-amber-400 px-1.5 py-0.5 rounded font-bold uppercase">
+          <span className="text-[9px] bg-slate-800 text-amber-400 px-1.5 py-0.5 rounded font-bold uppercase flex items-center gap-1">
             👤 {currentUser.name} ({currentUser.role})
           </span>
+          <button
+            onClick={() => setShowChangePinModal(true)}
+            className="text-[8px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded font-bold border border-slate-700"
+          >
+            ✏️ Change PIN
+          </button>
         </div>
 
         <div className="flex space-x-1 mt-1 sm:mt-0 items-center flex-wrap gap-y-1">
@@ -836,7 +877,7 @@ export default function App() {
                   <div>
                     <label className="font-bold text-[9px] text-slate-600">PIN Code</label>
                     <input
-                      type="text"
+                      type="password"
                       required
                       placeholder="e.g. 5555"
                       value={newUserPin}
@@ -871,16 +912,24 @@ export default function App() {
                         <span className="ml-1 text-[9px] uppercase font-bold text-amber-600 bg-amber-50 px-1 rounded border border-amber-200">
                           {u.role}
                         </span>
-                        <p className="text-[9px] text-slate-400">PIN: **** (Hidden for security)</p>
+                        <p className="text-[9px] text-slate-400">PIN: **** (Protected)</p>
                       </div>
-                      {u.id !== currentUser.id && (
+                      <div className="flex gap-1">
                         <button
-                          onClick={() => handleDeleteUser(u.id, u.name)}
-                          className="px-2 py-0.5 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded font-bold text-[9px]"
+                          onClick={() => handleResetUserToDefault(u.id, u.name)}
+                          className="px-2 py-0.5 bg-amber-100 text-amber-800 hover:bg-amber-200 rounded font-bold text-[9px]"
                         >
-                          🗑 Delete
+                          🔄 Reset PIN
                         </button>
-                      )}
+                        {u.id !== currentUser.id && (
+                          <button
+                            onClick={() => handleDeleteUser(u.id, u.name)}
+                            className="px-2 py-0.5 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded font-bold text-[9px]"
+                          >
+                            🗑 Delete
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -892,6 +941,60 @@ export default function App() {
                 Isara
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Own PIN Modal (For Any Logged-in User) */}
+      {showChangePinModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-3">
+          <div className="bg-white w-full max-w-xs rounded-xl shadow-2xl p-4 space-y-3 text-slate-800 text-xs">
+            <div className="flex justify-between items-center border-b pb-2">
+              <h3 className="font-bold text-xs text-slate-900">✏️ Baguhin ang Aking PIN</h3>
+              <button onClick={() => setShowChangePinModal(false)} className="text-slate-400 font-bold">✕</button>
+            </div>
+
+            <form onSubmit={handleChangeOwnPin} className="space-y-2.5">
+              <div>
+                <label className="font-bold text-[10px]">Kasalukuyang PIN (Old PIN)</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Enter current PIN"
+                  value={oldPinInput}
+                  onChange={(e) => setOldPinInput(e.target.value)}
+                  className="w-full border rounded p-1.5 text-xs mt-0.5 text-center font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-[10px]">Bagong PIN (New PIN)</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Bagong PIN"
+                  value={changeNewPinInput}
+                  onChange={(e) => setChangeNewPinInput(e.target.value)}
+                  className="w-full border rounded p-1.5 text-xs mt-0.5 text-center font-bold"
+                />
+              </div>
+
+              <div className="flex justify-end gap-1.5 pt-2 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowChangePinModal(false)}
+                  className="px-3 py-1 bg-slate-200 rounded text-xs font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-3 py-1 bg-red-600 text-white rounded text-xs font-bold"
+                >
+                  Save New PIN
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
