@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 
 const DEFAULT_PRODUCTS = [
-  { id: 1, name: 'Yamalube 10W-40 4T (800ml)', category: 'Engine Oil', price: 250, stock: 18, unit: 'bottle' },
-  { id: 2, name: 'NGK Spark Plug CPR8EA-9', category: 'Electrical', price: 140, stock: 32, unit: 'pcs' },
-  { id: 3, name: 'RCB Brake Pad S-Series (NMAX)', category: 'Brake System', price: 380, stock: 12, unit: 'set' },
-  { id: 4, name: 'FDR Sport XR Evo 90/80-17', category: 'Tires', price: 1450, stock: 3, unit: 'pcs' },
-  { id: 5, name: 'Drive Belt Click 125i (Honda)', category: 'Engine Parts', price: 650, stock: 2, unit: 'pcs' }
+  { id: 1, code: 'OIL-001', name: 'Yamalube AT 10W-40 (800ml)', category: 'Engine Oil', price: 280, stock: 24, unit: 'pcs' },
+  { id: 2, code: 'OIL-002', name: 'Shell Advance AX7 10W-40 (1L)', category: 'Engine Oil', price: 340, stock: 15, unit: 'pcs' },
+  { id: 3, code: 'BRK-001', name: 'Nissin Front Brake Pad (Mio/Beat)', category: 'Brake System', price: 180, stock: 8, unit: 'set' },
+  { id: 4, code: 'BRK-002', name: 'Brake Shoe Rear (Wave/TMX)', category: 'Brake System', price: 140, stock: 3, unit: 'set' },
+  { id: 5, code: 'TIR-001', name: 'IRC Tire 80/90 x 14 Tubeless', category: 'Tires & Tubes', price: 850, stock: 6, unit: 'pcs' },
+  { id: 6, code: 'TIR-002', name: 'FDR Sport XR 90/80 x 17', category: 'Tires & Tubes', price: 1250, stock: 4, unit: 'pcs' },
+  { id: 7, code: 'DRV-001', name: 'Drive Belt Gates Powerlink Mio', category: 'Drive System', price: 450, stock: 10, unit: 'pcs' },
+  { id: 8, code: 'DRV-002', name: 'Flyball Roller Set 12g', category: 'Drive System', price: 220, stock: 18, unit: 'set' },
+  { id: 9, code: 'ELE-001', name: 'NGK Spark Plug CPR8EA-9', category: 'Electrical', price: 130, stock: 30, unit: 'pcs' },
+  { id: 10, code: 'ELE-002', name: 'Battery Motolite 12V 5Ah', category: 'Electrical', price: 980, stock: 5, unit: 'pcs' }
 ];
 
 const DEFAULT_MECHANICS = ['Juan', 'Pedro', 'Cardo', 'Talyer Shop / House'];
@@ -35,7 +40,7 @@ export default function App() {
 
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
-  const [prodForm, setProdForm] = useState({ name: '', category: 'Engine Oil', price: '', stock: '', unit: 'pcs' });
+  const [prodForm, setProdForm] = useState({ code: '', name: '', category: 'Engine Oil', price: '', stock: '', unit: 'pcs' });
 
   const [salesHistory, setSalesHistory] = useState(() => {
     const saved = localStorage.getItem('motofix_sales');
@@ -60,17 +65,24 @@ export default function App() {
     localStorage.setItem('motofix_sales', JSON.stringify(salesHistory));
   }, [salesHistory]);
 
-  const categories = ['All', 'Engine Oil', 'Electrical', 'Tires', 'Brake System', 'Engine Parts', 'Maintenance'];
+  const resetToDefaultItems = () => {
+    if (window.confirm('Gusto mo bang i-load ang kumpletong bagong listahan ng sample products?')) {
+      setProducts(DEFAULT_PRODUCTS);
+      localStorage.setItem('motofix_products', JSON.stringify(DEFAULT_PRODUCTS));
+    }
+  };
+
+  const categories = ['All', 'Engine Oil', 'Tires & Tubes', 'Brake System', 'Drive System', 'Electrical', 'Accessories'];
 
   const handleOpenAddProduct = () => {
     setEditingProductId(null);
-    setProdForm({ name: '', category: 'Engine Oil', price: '', stock: '', unit: 'pcs' });
+    setProdForm({ code: `ITEM-${Date.now().toString().slice(-3)}`, name: '', category: 'Engine Oil', price: '', stock: '', unit: 'pcs' });
     setShowProductModal(true);
   };
 
   const handleOpenEditProduct = (product) => {
     setEditingProductId(product.id);
-    setProdForm({ name: product.name, category: product.category, price: product.price, stock: product.stock, unit: product.unit });
+    setProdForm({ code: product.code || '', name: product.name, category: product.category, price: product.price, stock: product.stock, unit: product.unit });
     setShowProductModal(true);
   };
 
@@ -210,6 +222,7 @@ export default function App() {
     
     const matchesSearch =
       prod.name.toLowerCase().includes(term) ||
+      (prod.code && prod.code.toLowerCase().includes(term)) ||
       prod.category.toLowerCase().includes(term);
 
     if (term !== '') {
@@ -254,83 +267,75 @@ export default function App() {
     <div className="min-h-screen bg-slate-100 font-sans text-slate-800 text-[11px]">
       <header className="bg-slate-900 text-white px-3 py-2 flex flex-wrap justify-between items-center shadow-md">
         <div className="flex items-center space-x-2">
-          <span className="text-base font-bold tracking-wider text-red-500">🔧 MOTOFIX</span>
-          <span className="text-[9px] text-slate-400 bg-slate-800 px-1 py-0.5 rounded">POS System</span>
+          <span className="text-base font-bold tracking-wider text-emerald-400">🔧 MotoFix <span className="bg-emerald-600 text-white text-[9px] px-1 py-0.2 rounded font-normal">POS</span></span>
+          <span className="text-[9px] text-slate-400">Motorcycle Parts & Service</span>
         </div>
-        <div className="flex space-x-1 mt-1 sm:mt-0 flex-wrap gap-y-1">
+        <div className="flex space-x-1.5 mt-1 sm:mt-0 flex-wrap items-center">
           <button
             onClick={() => setActiveTab('pos')}
-            className={`px-2 py-1 rounded text-[10px] font-medium transition ${activeTab === 'pos' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+            className={`px-2 py-1 rounded text-[10px] font-bold transition flex items-center gap-1 ${activeTab === 'pos' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
           >
-            🛒 POS
+            🛒 POS Center
           </button>
           <button
             onClick={() => setActiveTab('stocks')}
-            className={`px-2 py-1 rounded text-[10px] font-medium transition ${activeTab === 'stocks' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+            className={`px-2 py-1 rounded text-[10px] font-medium transition flex items-center gap-1 ${activeTab === 'stocks' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
           >
-            📦 Stocks ({products.filter((p) => p.stock < 5).length})
+            📦 Inventory ({products.length})
           </button>
           <button
             onClick={() => setActiveTab('mechanics')}
-            className={`px-2 py-1 rounded text-[10px] font-medium transition ${activeTab === 'mechanics' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+            className={`px-2 py-1 rounded text-[10px] font-medium transition flex items-center gap-1 ${activeTab === 'mechanics' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
           >
             👨‍🔧 Mechanics
           </button>
           <button
             onClick={() => setShowSalesModal(true)}
-            className="px-2 py-1 rounded text-[10px] font-medium bg-emerald-600 hover:bg-emerald-500 text-white transition shadow"
+            className="px-2 py-1 rounded text-[10px] font-bold bg-amber-600 hover:bg-amber-500 text-white transition shadow"
           >
-            📊 Sales (₱{todayRevenue.toLocaleString()})
+            📊 Sales Report
           </button>
         </div>
       </header>
 
-      {/* Cashier Tab (Ultra-Slim Minimalist Grid) */}
+      {/* POS Tab */}
       {activeTab === 'pos' && (
-        <div className="p-2 grid grid-cols-1 lg:grid-cols-6 gap-2">
-          {/* Main Products Area (5/6 Columns Width) */}
-          <div className="lg:col-span-5 space-y-2">
-            <div className="bg-amber-50 border border-amber-200 p-2 rounded-lg shadow-sm">
-              <form onSubmit={handleAddService} className="grid grid-cols-1 sm:grid-cols-4 gap-1">
+        <div className="p-2 grid grid-cols-1 lg:grid-cols-4 gap-2">
+          <div className="lg:col-span-3 space-y-2">
+            {/* Top Controls: Search & Service */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+              <div className="sm:col-span-2 flex items-center bg-white border rounded px-2 py-1 shadow-sm">
+                <span className="mr-1 text-slate-400">🔍</span>
                 <input
                   type="text"
-                  placeholder="Labor/Serbisyo (e.g. Change Oil)"
+                  placeholder="Search item name, code, or brand..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full text-[10px] outline-none bg-transparent"
+                />
+              </div>
+              <form onSubmit={handleAddService} className="flex gap-1 bg-amber-50 border border-amber-200 p-1 rounded">
+                <input
+                  type="text"
+                  placeholder="Labor"
                   value={customServiceName}
                   onChange={(e) => setCustomServiceName(e.target.value)}
-                  className="sm:col-span-1 border rounded px-2 py-0.5 text-[10px] bg-white"
+                  className="w-1/2 border rounded px-1 text-[9px] bg-white"
                 />
                 <input
                   type="number"
-                  placeholder="Presyo (₱)"
+                  placeholder="₱"
                   value={customServicePrice}
                   onChange={(e) => setCustomServicePrice(e.target.value)}
-                  className="border rounded px-2 py-0.5 text-[10px] bg-white"
+                  className="w-1/4 border rounded px-1 text-[9px] bg-white"
                 />
-                <select
-                  value={selectedMechanic}
-                  onChange={(e) => setSelectedMechanic(e.target.value)}
-                  className="border rounded px-2 py-0.5 text-[10px] bg-white font-semibold"
-                >
-                  {mechanics.map((m) => (
-                    <option key={m} value={m}>Mekaniko: {m}</option>
-                  ))}
-                </select>
-                <button type="submit" className="bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-bold py-0.5 px-2 rounded transition">
-                  + Add Labor
+                <button type="submit" className="w-1/4 bg-amber-600 text-white text-[9px] font-bold rounded">
+                  +Labor
                 </button>
               </form>
             </div>
 
-            <div className="flex flex-wrap gap-1 bg-white p-2 rounded-lg shadow-sm">
-              <input
-                type="text"
-                placeholder="Mag-search ng pyesa..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1 border rounded px-2 py-0.5 text-[10px] focus:outline-none focus:ring-1 focus:ring-red-500"
-              />
-            </div>
-
+            {/* Category Filter Pills */}
             <div className="flex gap-1 overflow-x-auto pb-0.5">
               {categories.map((cat) => (
                 <button
@@ -339,8 +344,8 @@ export default function App() {
                     setSelectedCategory(cat);
                     setSearchTerm('');
                   }}
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap transition ${
-                    selectedCategory === cat && searchTerm === '' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-200 shadow-sm'
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap transition ${
+                    selectedCategory === cat && searchTerm === '' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-200 border'
                   }`}
                 >
                   {cat}
@@ -348,66 +353,66 @@ export default function App() {
               ))}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-1.5">
+            {/* Product Cards Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
               {filteredProducts.map((prod) => (
-                <div key={prod.id} className="bg-white p-1.5 rounded-lg shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow transition">
+                <div
+                  key={prod.id}
+                  onClick={() => addToCart(prod)}
+                  className="bg-white p-2 rounded border border-slate-200 shadow-sm hover:border-emerald-500 cursor-pointer transition flex flex-col justify-between"
+                >
                   <div>
-                    <div className="flex justify-between items-center mb-0.5">
-                      <span className="text-[8px] uppercase font-bold text-slate-400 truncate">{prod.category}</span>
-                      <span className={`text-[8px] px-1 rounded font-bold ${prod.stock < 5 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                        {prod.stock}
+                    <div className="flex justify-between text-[8px] font-bold text-slate-400 mb-0.5">
+                      <span>{prod.code || 'ITEM'}</span>
+                      <span className={`px-1 rounded ${prod.stock < 5 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                        {prod.stock} left
                       </span>
                     </div>
-                    <h3 className="font-semibold text-[10px] text-slate-800 line-clamp-2 leading-tight">{prod.name}</h3>
+                    <h3 className="font-bold text-[10px] text-slate-800 leading-tight line-clamp-2">{prod.name}</h3>
+                    <p className="text-[8px] text-slate-400 mt-0.5">{prod.category}</p>
                   </div>
                   <div className="mt-1.5 flex justify-between items-center pt-1 border-t border-slate-100">
-                    <span className="text-[11px] font-bold text-red-600">₱{prod.price}</span>
-                    <button
-                      onClick={() => addToCart(prod)}
-                      disabled={prod.stock <= 0}
-                      className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition ${
-                        prod.stock > 0 ? 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                      }`}
-                    >
-                      {prod.stock > 0 ? '+Add' : 'Out'}
-                    </button>
+                    <span className="text-[11px] font-bold text-emerald-700">₱{prod.price.toFixed(2)}</span>
+                    <span className="text-[9px] bg-emerald-50 text-emerald-600 px-1 rounded font-bold">+Add</span>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Micro Order Summary Side Box (1/6 Column Width) */}
-          <div className="bg-white p-2 rounded-lg shadow-sm border border-slate-200 flex flex-col justify-between h-[calc(100vh-80px)] sticky top-2">
+          {/* Right Order Summary Cart Side Box */}
+          <div className="bg-slate-900 text-white p-2 rounded-lg shadow border border-slate-800 flex flex-col justify-between h-[calc(100vh-80px)] sticky top-2">
             <div>
-              <div className="flex justify-between items-center pb-1 border-b">
-                <h2 className="text-[11px] font-bold">🛒 Cart</h2>
-                <span className="text-[9px] bg-slate-100 px-1 rounded-full font-bold">{cart.reduce((a, b) => a + b.qty, 0)}</span>
+              <div className="flex justify-between items-center pb-1.5 border-b border-slate-800">
+                <h2 className="text-[11px] font-bold flex items-center gap-1 text-emerald-400">🛒 Current Order</h2>
+                <button onClick={() => setCart([])} className="text-[9px] bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded text-slate-300">Clear</button>
               </div>
 
-              <div className="mt-1.5 space-y-1 max-h-[62vh] overflow-y-auto pr-0.5">
+              <div className="mt-2 space-y-1 max-h-[58vh] overflow-y-auto pr-0.5">
                 {cart.length === 0 ? (
-                  <div className="text-center py-6 text-slate-400">
-                    <p className="text-xs">Empty Cart</p>
+                  <div className="text-center py-12 text-slate-600">
+                    <p className="text-2xl mb-1">🛒</p>
+                    <p className="text-[9px]">Cart is Empty</p>
+                    <p className="text-[8px]">Click item cards or add labor fees</p>
                   </div>
                 ) : (
                   cart.map((item) => (
-                    <div key={item.id} className="p-1 bg-slate-50 rounded border text-[10px] space-y-0.5">
+                    <div key={item.id} className="p-1.5 bg-slate-800/80 rounded border border-slate-700 text-[10px] space-y-1">
                       <div className="flex justify-between items-start">
-                        <p className="font-semibold text-[9px] line-clamp-1 flex-1 leading-tight">{item.name}</p>
-                        <span className="text-[9px] font-bold text-slate-800 ml-1">₱{(item.price * item.qty).toLocaleString()}</span>
+                        <p className="font-bold text-[9px] text-slate-200 line-clamp-1 flex-1">{item.name}</p>
+                        <span className="text-[9px] font-bold text-emerald-400 ml-1">₱{(item.price * item.qty).toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         {item.type === 'service' ? (
-                          <p className="text-[8px] text-amber-700 font-bold">👤 {item.mechanic}</p>
+                          <p className="text-[8px] text-amber-400 font-bold">👤 {item.mechanic}</p>
                         ) : (
-                          <p className="text-[8px] text-slate-500">₱{item.price}</p>
+                          <p className="text-[8px] text-slate-400">₱{item.price}</p>
                         )}
                         {item.type !== 'service' && (
-                          <div className="flex items-center space-x-0.5">
-                            <button onClick={() => updateCartQty(item.id, -1)} className="w-3.5 h-3.5 rounded bg-slate-200 hover:bg-slate-300 font-bold text-[9px] flex items-center justify-center">-</button>
-                            <span className="text-[9px] font-bold w-2 text-center">{item.qty}</span>
-                            <button onClick={() => updateCartQty(item.id, 1)} className="w-3.5 h-3.5 rounded bg-slate-200 hover:bg-slate-300 font-bold text-[9px] flex items-center justify-center">+</button>
+                          <div className="flex items-center space-x-1">
+                            <button onClick={() => updateCartQty(item.id, -1)} className="w-3.5 h-3.5 rounded bg-slate-700 hover:bg-slate-600 font-bold text-[9px] flex items-center justify-center">-</button>
+                            <span className="text-[9px] font-bold text-white">{item.qty}</span>
+                            <button onClick={() => updateCartQty(item.id, 1)} className="w-3.5 h-3.5 rounded bg-slate-700 hover:bg-slate-600 font-bold text-[9px] flex items-center justify-center">+</button>
                           </div>
                         )}
                       </div>
@@ -417,77 +422,81 @@ export default function App() {
               </div>
             </div>
 
-            <div className="pt-1.5 border-t space-y-1">
-              <div className="flex justify-between items-center text-[11px] font-black text-red-600">
+            <div className="pt-2 border-t border-slate-800 space-y-1.5">
+              <div className="flex justify-between text-[10px] text-slate-400">
+                <span>Subtotal</span>
+                <span>₱{totalAmount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs font-black text-white">
                 <span>TOTAL</span>
-                <span className="text-xs">₱{totalAmount.toLocaleString()}</span>
+                <span className="text-sm text-emerald-400">₱{totalAmount.toFixed(2)}</span>
               </div>
               <button
                 onClick={handleCheckout}
                 disabled={cart.length === 0}
-                className={`w-full py-1.5 rounded font-bold text-[10px] text-white transition shadow ${
-                  cart.length > 0 ? 'bg-red-600 hover:bg-red-500 active:scale-95' : 'bg-slate-300 cursor-not-allowed'
+                className={`w-full py-2 rounded font-bold text-xs text-white transition shadow ${
+                  cart.length > 0 ? 'bg-emerald-600 hover:bg-emerald-500 active:scale-95' : 'bg-slate-800 text-slate-600 cursor-not-allowed'
                 }`}
               >
-                PAY ₱
+                PAY ₱{totalAmount.toFixed(2)}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Dynamic Stocks Tab */}
+      {/* Inventory Stocks Tab */}
       {activeTab === 'stocks' && (
         <div className="p-4 max-w-4xl mx-auto space-y-3">
           <div className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border">
             <div>
-              <h2 className="text-base font-bold">📦 Inventory & Stock List</h2>
-              <p className="text-[10px] text-slate-500">Magdagdag, mag-edit, o magbura ng pyesa nang deretso sa screen.</p>
+              <h2 className="text-base font-bold">📦 Inventory Management</h2>
+              <p className="text-[10px] text-slate-500">Magdagdag, mag-edit, o mag-reset ng sample products list.</p>
             </div>
-            <button
-              onClick={handleOpenAddProduct}
-              className="bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-1.5 rounded text-xs transition shadow"
-            >
-              + Add Item
-            </button>
+            <div className="space-x-1">
+              <button
+                onClick={resetToDefaultItems}
+                className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-2.5 py-1 rounded text-xs transition"
+              >
+                🔄 Reset 10 Sample Items
+              </button>
+              <button
+                onClick={handleOpenAddProduct}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1 rounded text-xs transition shadow"
+              >
+                + Add New Item
+              </button>
+            </div>
           </div>
 
-          <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="bg-white p-3 rounded-lg shadow-sm border">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-[11px]">
                 <thead>
                   <tr className="bg-slate-100 border-b text-slate-600">
+                    <th className="p-2">Code</th>
                     <th className="p-2">Item Name</th>
                     <th className="p-2">Category</th>
                     <th className="p-2">Price</th>
-                    <th className="p-2">Available Stock</th>
+                    <th className="p-2">Stock</th>
                     <th className="p-2 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {products.map((p) => (
                     <tr key={p.id} className="border-b hover:bg-slate-50">
+                      <td className="p-2 font-bold text-slate-400">{p.code || 'ITEM'}</td>
                       <td className="p-2 font-semibold">{p.name}</td>
                       <td className="p-2 text-slate-500">{p.category}</td>
-                      <td className="p-2 font-bold text-red-600">₱{p.price.toLocaleString()}</td>
+                      <td className="p-2 font-bold text-emerald-700">₱{p.price.toFixed(2)}</td>
                       <td className="p-2">
                         <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${p.stock < 5 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
                           {p.stock} {p.unit}
                         </span>
                       </td>
                       <td className="p-2 text-center space-x-1">
-                        <button
-                          onClick={() => handleOpenEditProduct(p)}
-                          className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded font-bold text-[10px] hover:bg-amber-200"
-                        >
-                          ✏ Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteProduct(p.id, p.name)}
-                          className="px-2 py-0.5 bg-rose-100 text-rose-700 rounded font-bold text-[10px] hover:bg-rose-200"
-                        >
-                          🗑 Bura
-                        </button>
+                        <button onClick={() => handleOpenEditProduct(p)} className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded font-bold text-[10px]">✏ Edit</button>
+                        <button onClick={() => handleDeleteProduct(p.id, p.name)} className="px-2 py-0.5 bg-rose-100 text-rose-700 rounded font-bold text-[10px]">🗑 Delete</button>
                       </td>
                     </tr>
                   ))}
@@ -498,22 +507,21 @@ export default function App() {
         </div>
       )}
 
-      {/* Dynamic Mechanics Tab */}
+      {/* Mechanics Tab */}
       {activeTab === 'mechanics' && (
         <div className="p-4 max-w-4xl mx-auto space-y-4">
           <div className="bg-white p-4 rounded-lg shadow-sm border space-y-3">
-            <h2 className="text-base font-bold flex items-center gap-1">👨‍🔧 Mechanic Management & Earnings Tracker</h2>
-
+            <h2 className="text-base font-bold flex items-center gap-1">👨‍🔧 Mechanics Management</h2>
             <form onSubmit={handleAddMechanic} className="flex gap-2 bg-slate-50 p-2 rounded border">
               <input
                 type="text"
-                placeholder="Pangalan ng bagong mekaniko..."
+                placeholder="Name of mechanic..."
                 value={newMechanicName}
                 onChange={(e) => setNewMechanicName(e.target.value)}
                 className="flex-1 border rounded px-2 py-1 text-xs bg-white"
               />
-              <button type="submit" className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-3 py-1 rounded transition">
-                + Add Mekaniko
+              <button type="submit" className="bg-slate-900 text-white font-bold text-xs px-3 py-1 rounded">
+                + Add Mechanic
               </button>
             </form>
 
@@ -523,33 +531,14 @@ export default function App() {
                   <div className="flex justify-between items-start border-b pb-2">
                     <div>
                       <h3 className="font-bold text-sm text-slate-800">👤 {mech.name}</h3>
-                      <p className="text-[10px] text-slate-500">{mech.jobCount} Serbisyo Natapos</p>
+                      <p className="text-[10px] text-slate-500">{mech.jobCount} Jobs Completed</p>
                     </div>
                     <div className="text-right">
-                      <span className="text-[9px] uppercase font-bold text-amber-600">Kabuuang Labor</span>
-                      <p className="text-lg font-black text-amber-600">₱{mech.totalLabor.toLocaleString()}</p>
+                      <span className="text-[9px] uppercase font-bold text-amber-600">Total Earnings</span>
+                      <p className="text-lg font-black text-amber-600">₱{mech.totalLabor.toFixed(2)}</p>
                     </div>
                   </div>
-
-                  <div className="space-y-1 max-h-28 overflow-y-auto pr-1">
-                    {mech.jobs.length === 0 ? (
-                      <p className="text-[10px] text-slate-400 italic">Wala pang naitalang labor ngayon.</p>
-                    ) : (
-                      mech.jobs.map((j, idx) => (
-                        <div key={idx} className="flex justify-between text-[10px] bg-white p-1.5 rounded border">
-                          <span className="font-medium text-slate-700">{j.service} <span className="text-slate-400">({j.time})</span></span>
-                          <span className="font-bold text-slate-800">₱{j.price.toLocaleString()}</span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  <button
-                    onClick={() => handleDeleteMechanic(mech.name)}
-                    className="text-[10px] font-bold text-rose-500 hover:underline pt-1 inline-block"
-                  >
-                    🗑 Tanggalin itong Mekaniko
-                  </button>
+                  <button onClick={() => handleDeleteMechanic(mech.name)} className="text-[10px] font-bold text-rose-500 hover:underline">🗑 Remove Mechanic</button>
                 </div>
               ))}
             </div>
@@ -557,29 +546,38 @@ export default function App() {
         </div>
       )}
 
-      {/* Product Add/Edit Modal */}
+      {/* Add / Edit Product Modal */}
       {showProductModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-3">
           <div className="bg-white w-full max-w-sm rounded-xl shadow-2xl overflow-hidden p-4 space-y-3 text-xs">
-            <h3 className="text-sm font-bold">{editingProductId ? '✏ Edit Item / Stock' : '+ Add New Item'}</h3>
+            <h3 className="text-sm font-bold">{editingProductId ? '✏ Edit Item' : '+ Add Item'}</h3>
             <form onSubmit={handleSaveProduct} className="space-y-2">
               <div>
-                <label className="font-bold text-slate-600 text-[10px]">Pangalan ng Item / Pyesa</label>
+                <label className="font-bold text-[10px]">Item Code</label>
+                <input
+                  type="text"
+                  value={prodForm.code}
+                  onChange={(e) => setProdForm({ ...prodForm, code: e.target.value })}
+                  className="w-full border rounded p-1 text-xs mt-0.5"
+                />
+              </div>
+              <div>
+                <label className="font-bold text-[10px]">Item Name</label>
                 <input
                   type="text"
                   required
                   value={prodForm.name}
                   onChange={(e) => setProdForm({ ...prodForm, name: e.target.value })}
-                  className="w-full border rounded p-1.5 text-xs mt-0.5"
+                  className="w-full border rounded p-1 text-xs mt-0.5"
                 />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="font-bold text-slate-600 text-[10px]">Category</label>
+                  <label className="font-bold text-[10px]">Category</label>
                   <select
                     value={prodForm.category}
                     onChange={(e) => setProdForm({ ...prodForm, category: e.target.value })}
-                    className="w-full border rounded p-1.5 text-xs mt-0.5"
+                    className="w-full border rounded p-1 text-xs mt-0.5"
                   >
                     {categories.filter((c) => c !== 'All').map((c) => (
                       <option key={c} value={c}>{c}</option>
@@ -587,151 +585,62 @@ export default function App() {
                   </select>
                 </div>
                 <div>
-                  <label className="font-bold text-slate-600 text-[10px]">Unit (e.g. pcs, bottle)</label>
-                  <input
-                    type="text"
-                    required
-                    value={prodForm.unit}
-                    onChange={(e) => setProdForm({ ...prodForm, unit: e.target.value })}
-                    className="w-full border rounded p-1.5 text-xs mt-0.5"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="font-bold text-slate-600 text-[10px]">Presyo (₱)</label>
+                  <label className="font-bold text-[10px]">Price (₱)</label>
                   <input
                     type="number"
                     required
                     value={prodForm.price}
                     onChange={(e) => setProdForm({ ...prodForm, price: e.target.value })}
-                    className="w-full border rounded p-1.5 text-xs mt-0.5"
+                    className="w-full border rounded p-1 text-xs mt-0.5"
                   />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="font-bold text-slate-600 text-[10px]">Stock Count</label>
+                  <label className="font-bold text-[10px]">Stock Count</label>
                   <input
                     type="number"
                     required
                     value={prodForm.stock}
                     onChange={(e) => setProdForm({ ...prodForm, stock: e.target.value })}
-                    className="w-full border rounded p-1.5 text-xs mt-0.5"
+                    className="w-full border rounded p-1 text-xs mt-0.5"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-[10px]">Unit</label>
+                  <input
+                    type="text"
+                    required
+                    value={prodForm.unit}
+                    onChange={(e) => setProdForm({ ...prodForm, unit: e.target.value })}
+                    className="w-full border rounded p-1 text-xs mt-0.5"
                   />
                 </div>
               </div>
               <div className="flex justify-end space-x-2 pt-2 border-t">
-                <button
-                  type="button"
-                  onClick={() => setShowProductModal(false)}
-                  className="px-3 py-1 bg-slate-200 rounded text-xs font-bold"
-                >
-                  Kanselahin
-                </button>
-                <button type="submit" className="px-3 py-1 bg-red-600 text-white rounded text-xs font-bold">
-                  Save
-                </button>
+                <button type="button" onClick={() => setShowProductModal(false)} className="px-3 py-1 bg-slate-200 rounded text-xs font-bold">Cancel</button>
+                <button type="submit" className="px-3 py-1 bg-emerald-600 text-white rounded text-xs font-bold">Save Item</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Daily Sales Modal */}
+      {/* Sales Modal */}
       {showSalesModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-3">
-          <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col text-xs">
+          <div className="bg-white w-full max-w-xl rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col text-xs">
             <div className="bg-slate-900 text-white p-3 flex justify-between items-center">
-              <h3 className="text-sm font-bold flex items-center gap-1.5">📊 Daily Sales Log & Reports</h3>
+              <h3 className="text-sm font-bold">📊 Sales History & Reports</h3>
               <button onClick={() => setShowSalesModal(false)} className="text-slate-400 hover:text-white font-bold text-base">✕</button>
             </div>
-
             <div className="p-4 overflow-y-auto flex-1 space-y-3">
-              <div className="flex justify-between items-center bg-slate-100 p-2 rounded-lg border">
-                <span className="font-bold text-slate-700 text-[11px]">📅 Petsa:</span>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => setSalesDateFilter('today')}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition ${salesDateFilter === 'today' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 hover:bg-slate-200'}`}
-                  >
-                    Ngayong Araw
-                  </button>
-                  <button
-                    onClick={() => setSalesDateFilter('yesterday')}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition ${salesDateFilter === 'yesterday' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 hover:bg-slate-200'}`}
-                  >
-                    Kahapon
-                  </button>
-                  <button
-                    onClick={() => setSalesDateFilter('all')}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition ${salesDateFilter === 'all' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 hover:bg-slate-200'}`}
-                  >
-                    Lahat
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center bg-emerald-50 p-3 rounded-lg border border-emerald-200">
+              <div className="flex justify-between items-center bg-emerald-50 p-3 rounded border border-emerald-200">
                 <div>
-                  <p className="text-[10px] uppercase text-emerald-600 font-bold">
-                    Kabuuang Benta ({salesDateFilter === 'today' ? 'Ngayong Araw' : salesDateFilter === 'yesterday' ? 'Kahapon' : 'Lahat'})
-                  </p>
-                  <p className="text-2xl font-black text-emerald-700">₱{filteredTotalRevenue.toLocaleString()}</p>
+                  <p className="text-[10px] uppercase text-emerald-600 font-bold">Total Sales</p>
+                  <p className="text-2xl font-black text-emerald-700">₱{filteredTotalRevenue.toFixed(2)}</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-[10px] text-slate-500">Transaksyon</p>
-                  <p className="text-base font-bold text-slate-700">{filteredSalesHistory.length} Orders</p>
-                </div>
-              </div>
-
-              {filteredSalesHistory.length === 0 ? (
-                <div className="text-center py-6 text-slate-400">
-                  <p>Walang naitalang benta.</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {filteredSalesHistory.map((sale) => (
-                    <div key={sale.id} className="border rounded-lg p-3 bg-slate-50 space-y-1">
-                      <div className="flex justify-between items-center border-b pb-1">
-                        <span className="text-[10px] font-bold text-slate-500">🕒 {sale.date} - {sale.time}</span>
-                        <span className="font-black text-red-600">Total: ₱{sale.total.toLocaleString()}</span>
-                      </div>
-                      <ul className="space-y-0.5 text-[11px]">
-                        {sale.items.map((item, idx) => (
-                          <li key={idx} className="flex justify-between text-slate-700">
-                            <span>
-                              • {item.name} x {item.qty}
-                              {item.type === 'service' && <span className="text-[10px] text-amber-600 font-bold ml-1">({item.mechanic})</span>}
-                            </span>
-                            <span className="font-semibold">₱{(item.price * item.qty).toLocaleString()}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="p-3 bg-slate-100 border-t flex justify-between items-center">
-              <button
-                onClick={clearSalesHistory}
-                className="px-3 py-1 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded text-xs font-bold transition"
-              >
-                🗑 Reset History
-              </button>
-              <div className="space-x-1.5">
-                <button
-                  onClick={handlePrint}
-                  className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded text-xs font-bold transition"
-                >
-                  🖨 Print
-                </button>
-                <button
-                  onClick={() => setShowSalesModal(false)}
-                  className="px-3 py-1 bg-slate-300 hover:bg-slate-400 text-slate-800 rounded text-xs font-bold transition"
-                >
-                  Isara
-                </button>
+                <button onClick={clearSalesHistory} className="px-2 py-1 bg-rose-100 text-rose-700 rounded font-bold text-[10px]">Clear History</button>
               </div>
             </div>
           </div>
