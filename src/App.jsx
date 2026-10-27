@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
 
+const DEFAULT_USERS = [
+  { id: 1, name: 'Owner (Master)', role: 'admin', pin: '1234' },
+  { id: 2, name: 'Cashier 1', role: 'cashier', pin: '0000' }
+];
+
 const DEFAULT_PRODUCTS = [
   { id: 1, code: 'OIL-001', name: 'Yamalube AT 10W-40 (800ml)', category: 'Engine Oil', price: 280, stock: 24, unit: 'pcs' },
   { id: 2, code: 'OIL-002', name: 'Shell Advance AX7 10W-40 (1L)', category: 'Engine Oil', price: 340, stock: 15, unit: 'pcs' },
@@ -16,6 +21,27 @@ const DEFAULT_PRODUCTS = [
 const DEFAULT_MECHANICS = ['Juan', 'Pedro', 'Cardo', 'Talyer Shop / House'];
 
 export default function App() {
+  // User Authentication State
+  const [users, setUsers] = useState(() => {
+    const saved = localStorage.getItem('motofix_users');
+    return saved ? JSON.parse(saved) : DEFAULT_USERS;
+  });
+
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem('motofix_current_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const [loginPin, setLoginPin] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState(users[0]?.id || '');
+
+  // User Management Form (Admin Only)
+  const [showUsersModal, setShowUsersModal] = useState(false);
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserRole, setNewUserRole] = useState('cashier');
+  const [newUserPin, setNewUserPin] = useState('');
+
+  // Main App Navigation
   const [activeTab, setActiveTab] = useState('pos');
 
   const [products, setProducts] = useState(() => {
@@ -59,6 +85,19 @@ export default function App() {
   const [showSalesModal, setShowSalesModal] = useState(false);
   const [salesDateFilter, setSalesDateFilter] = useState('today');
 
+  // Persistence Effects
+  useEffect(() => {
+    localStorage.setItem('motofix_users', JSON.stringify(users));
+  }, [users]);
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('motofix_current_user', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('motofix_current_user');
+    }
+  }, [currentUser]);
+
   useEffect(() => {
     localStorage.setItem('motofix_products', JSON.stringify(products));
   }, [products]);
@@ -75,6 +114,52 @@ export default function App() {
   }, [salesHistory]);
 
   const categories = ['All', 'Engine Oil', 'Tires & Tubes', 'Brake System', 'Drive System', 'Electrical', 'Accessories'];
+
+  // Auth Handlers
+  const handleLogin = (e) => {
+    e.preventDefault();
+    const targetUser = users.find((u) => u.id === Number(selectedUserId));
+    if (!targetUser) return alert('Pumili ng account!');
+
+    if (targetUser.pin === loginPin.trim()) {
+      setCurrentUser(targetUser);
+      setLoginPin('');
+      setActiveTab('pos');
+    } else {
+      alert('Maling PIN Code!');
+    }
+  };
+
+  const handleLogout = () => {
+    if (window.confirm('Gusto mo bang mag-log out?')) {
+      setCurrentUser(null);
+      setLoginPin('');
+    }
+  };
+
+  const handleAddUser = (e) => {
+    e.preventDefault();
+    if (!newUserName.trim() || !newUserPin.trim()) return alert('Kumpletuhin ang mga detalye!');
+
+    const newUser = {
+      id: Date.now(),
+      name: newUserName.trim(),
+      role: newUserRole,
+      pin: newUserPin.trim()
+    };
+
+    setUsers((prev) => [...prev, newUser]);
+    setNewUserName('');
+    setNewUserPin('');
+    alert(`Account for ${newUser.name} created successfully!`);
+  };
+
+  const handleDeleteUser = (id, name) => {
+    if (id === currentUser?.id) return alert('Hindi mo pwedeng burahin ang sarili mong account habang nakalog-in!');
+    if (window.confirm(`Burahin ang account ni ${name}?`)) {
+      setUsers((prev) => prev.filter((u) => u.id !== id));
+    }
+  };
 
   const resetToDefaultItems = () => {
     if (window.confirm('I-load ang kumpletong bagong listahan ng sample products?')) {
@@ -203,6 +288,7 @@ export default function App() {
       id: Date.now(),
       date: new Date().toLocaleDateString('en-PH'),
       time: new Date().toLocaleTimeString('en-PH'),
+      cashier: currentUser?.name || 'Unknown',
       items: [...cart],
       subtotal,
       discount: Number(discount),
@@ -225,8 +311,8 @@ export default function App() {
     );
 
     setSalesHistory([newSale, ...salesHistory]);
-    
-    let msg = `Checkout Complete!\nTotal: ₱${totalAmount.toLocaleString()}`;
+
+    let msg = `Checkout Complete!\nCashier: ${newSale.cashier}\nTotal: ₱${totalAmount.toLocaleString()}`;
     if (paymentMethod !== 'Cash' && referenceNo) {
       msg += `\nPayment: ${paymentMethod} (Ref: ${referenceNo})`;
     } else {
@@ -292,19 +378,85 @@ export default function App() {
     return { name: mech, totalLabor, jobCount };
   });
 
+  // 1. LOGIN SCREEN (If not logged in)
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex justify-center items-center p-3 font-sans text-xs">
+        <div className="bg-white w-full max-w-xs rounded-xl shadow-2xl p-5 space-y-4 text-slate-800">
+          <div className="text-center space-y-1">
+            <h1 className="text-xl font-bold text-red-600 tracking-wider">🔧 MotoFix POS</h1>
+            <p className="text-[10px] text-slate-500">Pumili ng Account at i-enter ang PIN Code</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-3">
+            <div>
+              <label className="font-bold text-[10px] text-slate-600">Account / Staff</label>
+              <select
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                className="w-full border rounded p-2 mt-0.5 font-bold text-xs bg-slate-50"
+              >
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name} ({u.role.toUpperCase()})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="font-bold text-[10px] text-slate-600">PIN Code</label>
+              <input
+                type="password"
+                required
+                placeholder="4-digit PIN (Default: 1234 / 0000)"
+                value={loginPin}
+                onChange={(e) => setLoginPin(e.target.value)}
+                className="w-full border rounded p-2 mt-0.5 text-center font-bold text-base tracking-widest bg-slate-50"
+              />
+            </div>
+
+            <button type="submit" className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 rounded shadow transition">
+              LOG IN 🔑
+            </button>
+          </form>
+
+          <div className="bg-slate-100 p-2 rounded text-[9px] text-slate-500 space-y-0.5">
+            <p className="font-bold text-slate-700">Default Logins:</p>
+            <p>• Owner (Master): PIN <b>1234</b></p>
+            <p>• Cashier 1: PIN <b>0000</b></p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. MAIN APP DASHBOARD
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-800 text-[11px]">
       {/* Header Bar */}
       <header className="bg-slate-900 text-white px-3 py-2 flex flex-wrap justify-between items-center shadow">
         <div className="flex items-center space-x-2">
           <span className="text-base font-bold text-red-500">🔧 MotoFix POS</span>
-          <span className="text-[9px] text-slate-400">Motorcycle Parts & Service</span>
+          <span className="text-[9px] bg-slate-800 text-amber-400 px-1.5 py-0.5 rounded font-bold uppercase">
+            👤 {currentUser.name} ({currentUser.role})
+          </span>
         </div>
-        <div className="flex space-x-1 mt-1 sm:mt-0 items-center">
+
+        <div className="flex space-x-1 mt-1 sm:mt-0 items-center flex-wrap gap-y-1">
           <button onClick={() => setActiveTab('pos')} className={`px-2 py-1 rounded text-[10px] font-bold ${activeTab === 'pos' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300'}`}>🛒 POS Center</button>
-          <button onClick={() => setActiveTab('stocks')} className={`px-2 py-1 rounded text-[10px] font-bold ${activeTab === 'stocks' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300'}`}>📦 Inventory ({products.length})</button>
-          <button onClick={() => setActiveTab('mechanics')} className={`px-2 py-1 rounded text-[10px] font-bold ${activeTab === 'mechanics' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300'}`}>👨‍🔧 Mechanics</button>
+
+          {/* Master Admin Only Tabs */}
+          {currentUser.role === 'admin' && (
+            <>
+              <button onClick={() => setActiveTab('stocks')} className={`px-2 py-1 rounded text-[10px] font-bold ${activeTab === 'stocks' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300'}`}>📦 Inventory ({products.length})</button>
+              <button onClick={() => setActiveTab('mechanics')} className={`px-2 py-1 rounded text-[10px] font-bold ${activeTab === 'mechanics' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300'}`}>👨‍🔧 Mechanics</button>
+              <button onClick={() => setShowUsersModal(true)} className="px-2 py-1 rounded text-[10px] font-bold bg-amber-600 text-white">⚙️ Accounts</button>
+            </>
+          )}
+
           <button onClick={() => setShowSalesModal(true)} className="px-2 py-1 rounded text-[10px] font-bold bg-emerald-600 text-white">📊 Sales (₱{todayRevenue.toLocaleString()})</button>
+          <button onClick={handleLogout} className="px-2 py-1 rounded text-[10px] font-bold bg-slate-800 hover:bg-rose-600 text-slate-300 transition">🚪 Logout</button>
         </div>
       </header>
 
@@ -440,7 +592,6 @@ export default function App() {
                   </select>
                 </div>
 
-                {/* Dynamic Slot for Reference No. or Amount Tendered */}
                 {paymentMethod !== 'Cash' ? (
                   <div className="flex justify-between items-center">
                     <span className="text-amber-400 font-bold">Ref / Payment No.</span>
@@ -487,8 +638,8 @@ export default function App() {
         </div>
       )}
 
-      {/* Mechanics Tab */}
-      {activeTab === 'mechanics' && (
+      {/* Mechanics Tab (Master Admin Only) */}
+      {activeTab === 'mechanics' && currentUser.role === 'admin' && (
         <div className="p-4 max-w-4xl mx-auto space-y-4">
           <div className="bg-white p-4 rounded-lg shadow-sm border space-y-3">
             <h2 className="text-base font-bold flex items-center gap-1">👨‍🔧 Mechanics Management & Earnings</h2>
@@ -526,8 +677,8 @@ export default function App() {
         </div>
       )}
 
-      {/* Stocks Tab */}
-      {activeTab === 'stocks' && (
+      {/* Stocks Tab (Master Admin Only) */}
+      {activeTab === 'stocks' && currentUser.role === 'admin' && (
         <div className="p-4 max-w-4xl mx-auto space-y-3">
           <div className="flex justify-between items-center bg-white p-3 rounded shadow border">
             <div>
@@ -569,6 +720,93 @@ export default function App() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Account Control Modal (Master Admin Only) */}
+      {showUsersModal && currentUser.role === 'admin' && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-3">
+          <div className="bg-white w-full max-w-md rounded-xl shadow-2xl overflow-hidden text-xs flex flex-col max-h-[90vh]">
+            <div className="bg-slate-900 text-white p-3 flex justify-between items-center">
+              <h3 className="text-sm font-bold">⚙️ Staff & Cashier Account Manager</h3>
+              <button onClick={() => setShowUsersModal(false)} className="text-slate-400 hover:text-white font-bold text-base">✕</button>
+            </div>
+
+            <div className="p-4 overflow-y-auto space-y-4">
+              <form onSubmit={handleAddUser} className="bg-slate-50 p-3 rounded border space-y-2">
+                <h4 className="font-bold text-slate-800">+ Add New Cashier / Staff Account</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="font-bold text-[9px] text-slate-600">Name / Handle</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Alex"
+                      value={newUserName}
+                      onChange={(e) => setNewUserName(e.target.value)}
+                      className="w-full border rounded p-1 text-xs mt-0.5 bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-[9px] text-slate-600">PIN Code</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 5555"
+                      value={newUserPin}
+                      onChange={(e) => setNewUserPin(e.target.value)}
+                      className="w-full border rounded p-1 text-xs mt-0.5 bg-white font-bold"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="font-bold text-[9px] text-slate-600">Account Role</label>
+                  <select
+                    value={newUserRole}
+                    onChange={(e) => setNewUserRole(e.target.value)}
+                    className="w-full border rounded p-1 text-xs mt-0.5 bg-white font-bold"
+                  >
+                    <option value="cashier">Cashier (POS & Sales Viewing Only)</option>
+                    <option value="admin">Master Admin (Full Control)</option>
+                  </select>
+                </div>
+                <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-1.5 rounded transition">
+                  Create Staff Account
+                </button>
+              </form>
+
+              <div className="space-y-1.5">
+                <h4 className="font-bold text-slate-800">Existing Accounts:</h4>
+                <div className="space-y-1">
+                  {users.map((u) => (
+                    <div key={u.id} className="flex justify-between items-center bg-slate-50 p-2 rounded border">
+                      <div>
+                        <span className="font-bold text-slate-800">{u.name}</span>
+                        <span className="ml-1 text-[9px] uppercase font-bold text-amber-600 bg-amber-50 px-1 rounded border border-amber-200">
+                          {u.role}
+                        </span>
+                        <p className="text-[9px] text-slate-400">PIN: **** (PIN Code)</p>
+                      </div>
+                      {u.id !== currentUser.id && (
+                        <button
+                          onClick={() => handleDeleteUser(u.id, u.name)}
+                          className="px-2 py-0.5 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded font-bold text-[9px]"
+                        >
+                          🗑 Delete
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-3 bg-slate-100 border-t text-right">
+              <button onClick={() => setShowUsersModal(false)} className="px-3 py-1 bg-slate-300 hover:bg-slate-400 text-slate-800 rounded font-bold">
+                Isara
+              </button>
             </div>
           </div>
         </div>
@@ -654,7 +892,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Sales Report Modal with Reference No. Display */}
+      {/* Sales Report Modal */}
       {showSalesModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-3">
           <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col text-xs">
@@ -710,7 +948,9 @@ export default function App() {
                   {filteredSalesHistory.map((sale) => (
                     <div key={sale.id} className="border rounded-lg p-2.5 bg-slate-50 space-y-1">
                       <div className="flex justify-between items-center border-b pb-1">
-                        <span className="text-[10px] font-bold text-slate-500">🕒 {sale.date} - {sale.time}</span>
+                        <span className="text-[10px] font-bold text-slate-500">
+                          🕒 {sale.date} - {sale.time} | <span className="text-slate-800 font-bold">👤 Cashier: {sale.cashier || 'N/A'}</span>
+                        </span>
                         <span className="font-black text-red-600">Total: ₱{sale.total.toFixed(2)}</span>
                       </div>
                       <ul className="space-y-0.5 text-[10px] pt-1">
@@ -745,12 +985,16 @@ export default function App() {
             </div>
 
             <div className="p-3 bg-slate-100 border-t flex justify-between items-center">
-              <button
-                onClick={clearSalesHistory}
-                className="px-3 py-1 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded text-xs font-bold transition"
-              >
-                🗑 Reset All History
-              </button>
+              {currentUser.role === 'admin' ? (
+                <button
+                  onClick={clearSalesHistory}
+                  className="px-3 py-1 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded text-xs font-bold transition"
+                >
+                  🗑 Reset All History (Admin Only)
+                </button>
+              ) : (
+                <span className="text-[9px] text-slate-400 italic">Logged in as Cashier</span>
+              )}
               <button
                 onClick={() => setShowSalesModal(false)}
                 className="px-3 py-1 bg-slate-300 hover:bg-slate-400 text-slate-800 rounded text-xs font-bold transition"
