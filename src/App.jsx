@@ -45,7 +45,7 @@ export default function App() {
   // Mechanic Add State
   const [newMechanicName, setNewMechanicName] = useState('');
 
-  // Inventory Management State
+  // Inventory Management Modal State
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
   const [prodForm, setProdForm] = useState({ code: '', name: '', category: 'Engine Oil', price: '', stock: '', unit: 'pcs' });
@@ -79,6 +79,44 @@ export default function App() {
     if (window.confirm('I-load ang kumpletong bagong listahan ng sample products?')) {
       setProducts(DEFAULT_PRODUCTS);
       localStorage.setItem('motofix_products', JSON.stringify(DEFAULT_PRODUCTS));
+    }
+  };
+
+  const handleOpenAddProduct = () => {
+    setEditingProductId(null);
+    setProdForm({ code: `ITEM-${Date.now().toString().slice(-3)}`, name: '', category: 'Engine Oil', price: '', stock: '', unit: 'pcs' });
+    setShowProductModal(true);
+  };
+
+  const handleOpenEditProduct = (product) => {
+    setEditingProductId(product.id);
+    setProdForm({ code: product.code || '', name: product.name, category: product.category, price: product.price, stock: product.stock, unit: product.unit });
+    setShowProductModal(true);
+  };
+
+  const handleSaveProduct = (e) => {
+    e.preventDefault();
+    if (!prodForm.name || !prodForm.price || !prodForm.stock) return alert('Paki-kumpleto ang mga detalye!');
+
+    if (editingProductId) {
+      setProducts((prev) =>
+        prev.map((p) => (p.id === editingProductId ? { ...p, ...prodForm, price: Number(prodForm.price), stock: Number(prodForm.stock) } : p))
+      );
+    } else {
+      const newProd = {
+        id: Date.now(),
+        ...prodForm,
+        price: Number(prodForm.price),
+        stock: Number(prodForm.stock)
+      };
+      setProducts((prev) => [newProd, ...prev]);
+    }
+    setShowProductModal(false);
+  };
+
+  const handleDeleteProduct = (id, name) => {
+    if (window.confirm(`Sigurado ka bang gusto mong burahin ang "${name}"?`)) {
+      setProducts((prev) => prev.filter((p) => p.id !== id));
     }
   };
 
@@ -248,7 +286,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-800 text-[11px]">
-      {/* Header */}
+      {/* Header Bar */}
       <header className="bg-slate-900 text-white px-3 py-2 flex flex-wrap justify-between items-center shadow">
         <div className="flex items-center space-x-2">
           <span className="text-base font-bold text-red-500">🔧 MotoFix POS</span>
@@ -265,7 +303,6 @@ export default function App() {
       {/* POS Tab */}
       {activeTab === 'pos' && (
         <div className="p-2 grid grid-cols-1 lg:grid-cols-4 gap-2">
-          {/* Main Items Area */}
           <div className="lg:col-span-3 space-y-2">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
               <div className="sm:col-span-2 flex items-center bg-white border rounded px-2 py-1">
@@ -285,7 +322,6 @@ export default function App() {
               </form>
             </div>
 
-            {/* Category Pills */}
             <div className="flex gap-1 overflow-x-auto pb-0.5">
               {categories.map((cat) => (
                 <button
@@ -298,7 +334,6 @@ export default function App() {
               ))}
             </div>
 
-            {/* Product Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
               {filteredProducts.map((prod) => (
                 <div
@@ -325,7 +360,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Cart Side Panel */}
           <div className="bg-slate-900 text-white p-2.5 rounded-lg shadow border border-slate-800 flex flex-col justify-between h-[calc(100vh-80px)] sticky top-2">
             <div>
               <div className="flex justify-between items-center pb-1.5 border-b border-slate-800">
@@ -333,7 +367,6 @@ export default function App() {
                 <button onClick={() => setCart([])} className="text-[9px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-300">Clear</button>
               </div>
 
-              {/* Items Listed */}
               <div className="mt-2 space-y-1 max-h-[38vh] overflow-y-auto pr-0.5">
                 {cart.length === 0 ? (
                   <div className="text-center py-8 text-slate-600">
@@ -363,7 +396,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Complete Order Button */}
             <div className="pt-2 border-t border-slate-800 space-y-1.5 text-[10px]">
               <div className="flex justify-between text-slate-400">
                 <span>Subtotal</span>
@@ -470,17 +502,135 @@ export default function App() {
         </div>
       )}
 
-      {/* Stocks Tab */}
+      {/* Complete Inventory / Stocks Tab (FULL CRUD Table Restored) */}
       {activeTab === 'stocks' && (
         <div className="p-4 max-w-4xl mx-auto space-y-3">
           <div className="flex justify-between items-center bg-white p-3 rounded shadow border">
-            <h2 className="text-base font-bold">📦 Inventory List</h2>
-            <button onClick={resetToDefaultItems} className="bg-slate-200 px-2 py-1 rounded font-bold text-xs">🔄 Load Sample Items</button>
+            <div>
+              <h2 className="text-base font-bold">📦 Inventory Management</h2>
+              <p className="text-[10px] text-slate-500">Magdagdag, mag-edit, o magbura ng pyesa at stocks.</p>
+            </div>
+            <div className="space-x-1">
+              <button onClick={resetToDefaultItems} className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-2 py-1 rounded text-xs">🔄 Reset Sample Items</button>
+              <button onClick={handleOpenAddProduct} className="bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-1 rounded text-xs transition shadow">+ Add New Item</button>
+            </div>
+          </div>
+
+          <div className="bg-white p-3 rounded shadow border">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-[11px]">
+                <thead>
+                  <tr className="bg-slate-100 border-b text-slate-600">
+                    <th className="p-2">Code</th>
+                    <th className="p-2">Item Name</th>
+                    <th className="p-2">Category</th>
+                    <th className="p-2">Price</th>
+                    <th className="p-2">Available Stock</th>
+                    <th className="p-2 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map((p) => (
+                    <tr key={p.id} className="border-b hover:bg-slate-50">
+                      <td className="p-2 font-bold text-slate-400">{p.code || 'ITEM'}</td>
+                      <td className="p-2 font-semibold">{p.name}</td>
+                      <td className="p-2 text-slate-500">{p.category}</td>
+                      <td className="p-2 font-bold text-red-600">₱{p.price.toFixed(2)}</td>
+                      <td className="p-2">{getStockBadge(p.stock)}</td>
+                      <td className="p-2 text-center space-x-1">
+                        <button onClick={() => handleOpenEditProduct(p)} className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded font-bold text-[10px]">✏ Edit</button>
+                        <button onClick={() => handleDeleteProduct(p.id, p.name)} className="px-2 py-0.5 bg-rose-100 text-rose-700 rounded font-bold text-[10px]">🗑 Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Complete Sales Report Modal with Full History */}
+      {/* Add / Edit Product Modal */}
+      {showProductModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-3">
+          <div className="bg-white w-full max-w-sm rounded-xl shadow-2xl overflow-hidden p-4 space-y-3 text-xs">
+            <h3 className="text-sm font-bold">{editingProductId ? '✏ Edit Item' : '+ Add New Item'}</h3>
+            <form onSubmit={handleSaveProduct} className="space-y-2">
+              <div>
+                <label className="font-bold text-[10px]">Item Code</label>
+                <input
+                  type="text"
+                  value={prodForm.code}
+                  onChange={(e) => setProdForm({ ...prodForm, code: e.target.value })}
+                  className="w-full border rounded p-1 text-xs mt-0.5"
+                />
+              </div>
+              <div>
+                <label className="font-bold text-[10px]">Item Name</label>
+                <input
+                  type="text"
+                  required
+                  value={prodForm.name}
+                  onChange={(e) => setProdForm({ ...prodForm, name: e.target.value })}
+                  className="w-full border rounded p-1 text-xs mt-0.5"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-bold text-[10px]">Category</label>
+                  <select
+                    value={prodForm.category}
+                    onChange={(e) => setProdForm({ ...prodForm, category: e.target.value })}
+                    className="w-full border rounded p-1 text-xs mt-0.5"
+                  >
+                    {categories.filter((c) => c !== 'All').map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="font-bold text-[10px]">Price (₱)</label>
+                  <input
+                    type="number"
+                    required
+                    value={prodForm.price}
+                    onChange={(e) => setProdForm({ ...prodForm, price: e.target.value })}
+                    className="w-full border rounded p-1 text-xs mt-0.5"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-bold text-[10px]">Stock Count</label>
+                  <input
+                    type="number"
+                    required
+                    value={prodForm.stock}
+                    onChange={(e) => setProdForm({ ...prodForm, stock: e.target.value })}
+                    className="w-full border rounded p-1 text-xs mt-0.5"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-[10px]">Unit</label>
+                  <input
+                    type="text"
+                    required
+                    value={prodForm.unit}
+                    onChange={(e) => setProdForm({ ...prodForm, unit: e.target.value })}
+                    className="w-full border rounded p-1 text-xs mt-0.5"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2 pt-2 border-t">
+                <button type="button" onClick={() => setShowProductModal(false)} className="px-3 py-1 bg-slate-200 rounded text-xs font-bold">Cancel</button>
+                <button type="submit" className="px-3 py-1 bg-red-600 text-white rounded text-xs font-bold">Save Item</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Sales Report Modal */}
       {showSalesModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-3">
           <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col text-xs">
@@ -490,7 +640,6 @@ export default function App() {
             </div>
 
             <div className="p-4 overflow-y-auto flex-1 space-y-3">
-              {/* Date Filter Bar */}
               <div className="flex justify-between items-center bg-slate-100 p-2 rounded border">
                 <span className="font-bold text-slate-700 text-[10px]">📅 Date Filter:</span>
                 <div className="flex gap-1">
@@ -515,7 +664,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Total Revenue Summary Box */}
               <div className="flex justify-between items-center bg-emerald-50 p-3 rounded border border-emerald-200">
                 <div>
                   <p className="text-[10px] uppercase text-emerald-600 font-bold">
@@ -529,7 +677,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Detailed Transactions List */}
               {filteredSalesHistory.length === 0 ? (
                 <div className="text-center py-8 text-slate-400">
                   <p>Walang naitalang benta sa napiling petsa.</p>
