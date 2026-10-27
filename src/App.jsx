@@ -405,7 +405,7 @@ export default function App() {
     return { name: mech, totalLabor, jobCount };
   });
 
-  // 1. LOGIN SCREEN WITH FORGOT PIN BUTTON
+  // 1. SECURE LOGIN SCREEN (No Passwords Displayed)
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-slate-900 flex justify-center items-center p-3 font-sans text-xs">
@@ -456,13 +456,6 @@ export default function App() {
               LOG IN 🔑
             </button>
           </form>
-
-          <div className="bg-slate-100 p-2 rounded text-[9px] text-slate-500 space-y-0.5">
-            <p className="font-bold text-slate-700">Default Credentials:</p>
-            <p>• Owner (Master): PIN <b>1234</b></p>
-            <p>• Cashier 1: PIN <b>0000</b></p>
-            <p className="text-amber-700 font-semibold mt-1">🔑 Reset Secret Key: <b>MOTOFIX-ADMIN</b></p>
-          </div>
         </div>
 
         {/* FORGOT PIN RESET MODAL */}
@@ -480,7 +473,7 @@ export default function App() {
                   <input
                     type="password"
                     required
-                    placeholder="Enter MOTOFIX-ADMIN"
+                    placeholder="Enter Secret Key"
                     value={recoveryInput}
                     onChange={(e) => setRecoveryInput(e.target.value)}
                     className="w-full border rounded p-1.5 text-xs mt-0.5"
@@ -878,7 +871,7 @@ export default function App() {
                         <span className="ml-1 text-[9px] uppercase font-bold text-amber-600 bg-amber-50 px-1 rounded border border-amber-200">
                           {u.role}
                         </span>
-                        <p className="text-[9px] text-slate-400">PIN: **** (PIN Code)</p>
+                        <p className="text-[9px] text-slate-400">PIN: **** (Hidden for security)</p>
                       </div>
                       {u.id !== currentUser.id && (
                         <button
