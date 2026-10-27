@@ -42,6 +42,9 @@ export default function App() {
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [amountTendered, setAmountTendered] = useState('');
 
+  // Mechanic Add State
+  const [newMechanicName, setNewMechanicName] = useState('');
+
   // Inventory Management State
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
@@ -53,6 +56,7 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
   const [showSalesModal, setShowSalesModal] = useState(false);
+  const [salesDateFilter, setSalesDateFilter] = useState('today');
 
   useEffect(() => {
     localStorage.setItem('motofix_products', JSON.stringify(products));
@@ -129,13 +133,29 @@ export default function App() {
     );
   };
 
+  // Mechanics Management
+  const handleAddMechanic = (e) => {
+    e.preventDefault();
+    if (!newMechanicName.trim()) return alert('Paki-lagay ang pangalan ng mekaniko!');
+    if (mechanics.includes(newMechanicName.trim())) return alert('Nakalista na ang mekanikong ito!');
+
+    setMechanics((prev) => [...prev, newMechanicName.trim()]);
+    setNewMechanicName('');
+  };
+
+  const handleDeleteMechanic = (mechName) => {
+    if (window.confirm(`Sigurado ka bang gusto mong tanggalin si "${mechName}"?`)) {
+      setMechanics((prev) => prev.filter((m) => m !== mechName));
+    }
+  };
+
   // Computations
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   const totalAmount = Math.max(0, subtotal - Number(discount));
   const tenderedNum = Number(amountTendered) || 0;
   const change = Math.max(0, tenderedNum - totalAmount);
 
-  const handleCheckoutAndPrint = () => {
+  const handleCheckoutOnly = () => {
     if (cart.length === 0) return alert('Walang laman ang cart!');
     if (tenderedNum < totalAmount) {
       return alert('Kulang ang ibinayad na pera (Amount Tendered)!');
@@ -166,8 +186,7 @@ export default function App() {
     );
 
     setSalesHistory([newSale, ...salesHistory]);
-    alert(`Order Complete!\nTotal: ₱${totalAmount.toLocaleString()}\nSukli: ₱${change.toLocaleString()}`);
-    window.print();
+    alert(`Checkout Complete!\nTotal: ₱${totalAmount.toLocaleString()}\nSukli: ₱${change.toLocaleString()}`);
 
     // Reset Cart & Payment
     setCart([]);
@@ -192,18 +211,40 @@ export default function App() {
     return <span className="bg-emerald-100 text-emerald-700 font-bold px-1 rounded text-[8px]">{stock} In Stock</span>;
   };
 
+  const todayStr = new Date().toLocaleDateString('en-PH');
+  const filteredSalesHistory = salesHistory.filter((sale) => {
+    if (salesDateFilter === 'today') return sale.date === todayStr;
+    return true;
+  });
+  const todayRevenue = salesHistory.filter((s) => s.date === todayStr).reduce((sum, s) => sum + s.total, 0);
+
+  const mechanicEarnings = mechanics.map((mech) => {
+    let totalLabor = 0;
+    let jobCount = 0;
+    salesHistory.forEach((sale) => {
+      sale.items.forEach((item) => {
+        if (item.type === 'service' && item.mechanic === mech) {
+          totalLabor += item.price * item.qty;
+          jobCount += item.qty;
+        }
+      });
+    });
+    return { name: mech, totalLabor, jobCount };
+  });
+
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-800 text-[11px]">
-      {/* Top Header */}
+      {/* Complete Header with Mechanics Button */}
       <header className="bg-slate-900 text-white px-3 py-2 flex flex-wrap justify-between items-center shadow">
         <div className="flex items-center space-x-2">
-          <span className="text-base font-bold text-emerald-400">🔧 MotoFix POS</span>
+          <span className="text-base font-bold text-red-500">🔧 MotoFix POS</span>
           <span className="text-[9px] text-slate-400">Motorcycle Parts & Service</span>
         </div>
         <div className="flex space-x-1 mt-1 sm:mt-0 items-center">
-          <button onClick={() => setActiveTab('pos')} className={`px-2 py-1 rounded text-[10px] font-bold ${activeTab === 'pos' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'}`}>🛒 POS Center</button>
-          <button onClick={() => setActiveTab('stocks')} className={`px-2 py-1 rounded text-[10px] font-bold ${activeTab === 'stocks' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'}`}>📦 Inventory ({products.length})</button>
-          <button onClick={() => setShowSalesModal(true)} className="px-2 py-1 rounded text-[10px] font-bold bg-amber-600 text-white">📊 Sales Report</button>
+          <button onClick={() => setActiveTab('pos')} className={`px-2 py-1 rounded text-[10px] font-bold ${activeTab === 'pos' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300'}`}>🛒 POS Center</button>
+          <button onClick={() => setActiveTab('stocks')} className={`px-2 py-1 rounded text-[10px] font-bold ${activeTab === 'stocks' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300'}`}>📦 Inventory ({products.length})</button>
+          <button onClick={() => setActiveTab('mechanics')} className={`px-2 py-1 rounded text-[10px] font-bold ${activeTab === 'mechanics' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300'}`}>👨‍🔧 Mechanics</button>
+          <button onClick={() => setShowSalesModal(true)} className="px-2 py-1 rounded text-[10px] font-bold bg-emerald-600 text-white">📊 Sales (₱{todayRevenue.toLocaleString()})</button>
         </div>
       </header>
 
@@ -243,13 +284,13 @@ export default function App() {
               ))}
             </div>
 
-            {/* Product Cards with In Stock / Low Stock / Out Status */}
+            {/* Product Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
               {filteredProducts.map((prod) => (
                 <div
                   key={prod.id}
                   onClick={() => addToCart(prod)}
-                  className="bg-white p-2 rounded border shadow-sm hover:border-emerald-500 cursor-pointer flex flex-col justify-between"
+                  className="bg-white p-2 rounded border shadow-sm hover:border-red-500 cursor-pointer flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex justify-between items-center text-[8px] font-bold text-slate-400 mb-0.5">
@@ -260,19 +301,21 @@ export default function App() {
                     <p className="text-[8px] text-slate-400 mt-0.5">{prod.category}</p>
                   </div>
                   <div className="mt-1.5 flex justify-between items-center pt-1 border-t border-slate-100">
-                    <span className="text-[11px] font-bold text-emerald-700">₱{prod.price.toFixed(2)}</span>
-                    <span className="text-[9px] bg-emerald-50 text-emerald-600 px-1 rounded font-bold">+Add</span>
+                    <span className="text-[11px] font-bold text-red-600">₱{prod.price.toFixed(2)}</span>
+                    <span className="text-[9px] bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-200 px-1.5 py-0.5 rounded font-bold transition">
+                      +Add
+                    </span>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Detailed Current Order Cart Side Panel */}
+          {/* Cart Side Panel */}
           <div className="bg-slate-900 text-white p-2.5 rounded-lg shadow border border-slate-800 flex flex-col justify-between h-[calc(100vh-80px)] sticky top-2">
             <div>
               <div className="flex justify-between items-center pb-1.5 border-b border-slate-800">
-                <h2 className="text-[11px] font-bold text-emerald-400">🛒 Current Order</h2>
+                <h2 className="text-[11px] font-bold text-red-400">🛒 Current Order</h2>
                 <button onClick={() => setCart([])} className="text-[9px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-300">Clear</button>
               </div>
 
@@ -288,7 +331,7 @@ export default function App() {
                     <div key={item.id} className="p-1.5 bg-slate-800 rounded border border-slate-700 text-[10px]">
                       <div className="flex justify-between">
                         <p className="font-bold text-[9px] text-slate-200 line-clamp-1">{item.name}</p>
-                        <span className="font-bold text-emerald-400">₱{(item.price * item.qty).toFixed(2)}</span>
+                        <span className="font-bold text-red-400">₱{(item.price * item.qty).toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between items-center mt-1">
                         <p className="text-[8px] text-slate-400">₱{item.price} each</p>
@@ -306,7 +349,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Complete Payment Inputs & Breakdown Section */}
+            {/* Complete Order Only Button */}
             <div className="pt-2 border-t border-slate-800 space-y-1.5 text-[10px]">
               <div className="flex justify-between text-slate-400">
                 <span>Subtotal</span>
@@ -326,7 +369,7 @@ export default function App() {
 
               <div className="flex justify-between items-center text-xs font-black text-white pt-1 border-t border-slate-800">
                 <span>TOTAL AMOUNT</span>
-                <span className="text-sm text-emerald-400">₱{totalAmount.toFixed(2)}</span>
+                <span className="text-sm text-red-500">₱{totalAmount.toFixed(2)}</span>
               </div>
 
               <div className="space-y-1 pt-1 border-t border-slate-800">
@@ -350,7 +393,7 @@ export default function App() {
                     placeholder="₱0.00"
                     value={amountTendered}
                     onChange={(e) => setAmountTendered(e.target.value)}
-                    className="w-20 bg-slate-800 border border-slate-700 rounded text-right px-1 py-0.5 text-emerald-400 font-bold text-[10px]"
+                    className="w-20 bg-slate-800 border border-slate-700 rounded text-right px-1 py-0.5 text-red-400 font-bold text-[10px]"
                   />
                 </div>
 
@@ -361,25 +404,84 @@ export default function App() {
               </div>
 
               <button
-                onClick={handleCheckoutAndPrint}
+                onClick={handleCheckoutOnly}
                 disabled={cart.length === 0}
                 className={`w-full py-2 rounded font-bold text-xs text-white transition shadow ${
-                  cart.length > 0 ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                  cart.length > 0 ? 'bg-red-600 hover:bg-red-500' : 'bg-slate-800 text-slate-600 cursor-not-allowed'
                 }`}
               >
-                🖨 COMPLETE ORDER & PRINT
+                COMPLETE ORDER
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Stocks & Sales Modal Features */}
+      {/* Mechanics Tab */}
+      {activeTab === 'mechanics' && (
+        <div className="p-4 max-w-4xl mx-auto space-y-4">
+          <div className="bg-white p-4 rounded-lg shadow-sm border space-y-3">
+            <h2 className="text-base font-bold flex items-center gap-1">👨‍🔧 Mechanics Management & Earnings</h2>
+            <form onSubmit={handleAddMechanic} className="flex gap-2 bg-slate-50 p-2 rounded border">
+              <input
+                type="text"
+                placeholder="Name of mechanic..."
+                value={newMechanicName}
+                onChange={(e) => setNewMechanicName(e.target.value)}
+                className="flex-1 border rounded px-2 py-1 text-xs bg-white"
+              />
+              <button type="submit" className="bg-slate-900 text-white font-bold text-xs px-3 py-1 rounded">
+                + Add Mechanic
+              </button>
+            </form>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {mechanicEarnings.map((mech) => (
+                <div key={mech.name} className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                  <div className="flex justify-between items-start border-b pb-2">
+                    <div>
+                      <h3 className="font-bold text-sm text-slate-800">👤 {mech.name}</h3>
+                      <p className="text-[10px] text-slate-500">{mech.jobCount} Jobs Completed</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[9px] uppercase font-bold text-amber-600">Total Earnings</span>
+                      <p className="text-lg font-black text-amber-600">₱{mech.totalLabor.toFixed(2)}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => handleDeleteMechanic(mech.name)} className="text-[10px] font-bold text-rose-500 hover:underline">🗑 Remove Mechanic</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stocks Tab */}
       {activeTab === 'stocks' && (
         <div className="p-4 max-w-4xl mx-auto space-y-3">
           <div className="flex justify-between items-center bg-white p-3 rounded shadow border">
             <h2 className="text-base font-bold">📦 Inventory List</h2>
-            <button onClick={resetToDefaultItems} className="bg-slate-200 px-2 py-1 rounded font-bold text-xs">🔄 Load 10 Sample Items</button>
+            <button onClick={resetToDefaultItems} className="bg-slate-200 px-2 py-1 rounded font-bold text-xs">🔄 Load Sample Items</button>
+          </div>
+        </div>
+      )}
+
+      {/* Sales Modal */}
+      {showSalesModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-3">
+          <div className="bg-white w-full max-w-xl rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col text-xs">
+            <div className="bg-slate-900 text-white p-3 flex justify-between items-center">
+              <h3 className="text-sm font-bold">📊 Sales History & Reports</h3>
+              <button onClick={() => setShowSalesModal(false)} className="text-slate-400 hover:text-white font-bold text-base">✕</button>
+            </div>
+            <div className="p-4 overflow-y-auto flex-1 space-y-3">
+              <div className="flex justify-between items-center bg-emerald-50 p-3 rounded border border-emerald-200">
+                <div>
+                  <p className="text-[10px] uppercase text-emerald-600 font-bold">Total Sales Today</p>
+                  <p className="text-2xl font-black text-emerald-700">₱{todayRevenue.toFixed(2)}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
