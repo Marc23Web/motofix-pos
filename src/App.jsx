@@ -565,21 +565,21 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-800 text-[11px]">
       {/* Header Bar */}
-      <header className="bg-slate-900 text-white px-3 py-2 flex flex-wrap justify-between items-center shadow">
-        <div className="flex items-center space-x-2">
+      <header className="bg-slate-900 text-white px-3 py-2 flex flex-wrap justify-between items-center shadow gap-y-1">
+        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
           <span className="text-base font-bold text-red-500">🔧 MotoFix POS</span>
-          <span className="text-[9px] bg-slate-800 text-amber-400 px-1.5 py-0.5 rounded font-bold uppercase flex items-center gap-1">
+          <span className="text-[9px] bg-slate-800 text-amber-400 px-1.5 py-0.5 rounded font-bold uppercase flex items-center gap-1 border border-slate-700">
             👤 {currentUser.name} ({currentUser.role})
           </span>
           <button
             onClick={handleOpenEditProfile}
-            className="text-[8px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded font-bold border border-slate-700"
+            className="text-[9px] bg-blue-600 hover:bg-blue-500 text-white px-2 py-0.5 rounded font-bold transition shadow"
           >
-            ✏️ Edit Profile
+            ✏️ Edit My Name & PIN
           </button>
         </div>
 
-        <div className="flex space-x-1 mt-1 sm:mt-0 items-center flex-wrap gap-y-1">
+        <div className="flex space-x-1 items-center flex-wrap gap-y-1">
           <button onClick={() => setActiveTab('pos')} className={`px-2 py-1 rounded text-[10px] font-bold ${activeTab === 'pos' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300'}`}>🛒 POS Center</button>
 
           {/* Master Admin Only Tabs */}
@@ -967,11 +967,11 @@ export default function App() {
 
             <form onSubmit={handleSaveProfile} className="space-y-2.5">
               <div>
-                <label className="font-bold text-[10px]">Name / Display Name</label>
+                <label className="font-bold text-[10px]">Pangalan / Display Name</label>
                 <input
                   type="text"
                   required
-                  placeholder="Your Name"
+                  placeholder="I-type ang iyong pangalan"
                   value={editNameInput}
                   onChange={(e) => setEditNameInput(e.target.value)}
                   className="w-full border rounded p-1.5 text-xs mt-0.5 font-bold"
@@ -979,11 +979,11 @@ export default function App() {
               </div>
 
               <div>
-                <label className="font-bold text-[10px]">Current PIN Code (Kailangan ibigay)</label>
+                <label className="font-bold text-[10px]">Kasalukuyang PIN (Current PIN)</label>
                 <input
                   type="password"
                   required
-                  placeholder="Kasalukuyang PIN"
+                  placeholder="Kasalukuyang PIN Code"
                   value={oldPinInput}
                   onChange={(e) => setOldPinInput(e.target.value)}
                   className="w-full border rounded p-1.5 text-xs mt-0.5 text-center font-bold"
@@ -991,7 +991,7 @@ export default function App() {
               </div>
 
               <div>
-                <label className="font-bold text-[10px]">New PIN Code (Optional)</label>
+                <label className="font-bold text-[10px]">Bagong PIN Code (Optional)</label>
                 <input
                   type="password"
                   placeholder="Iwanang blangko kung ayaw baguhin"
@@ -1011,7 +1011,7 @@ export default function App() {
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1 bg-red-600 text-white rounded text-xs font-bold"
+                  className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-bold shadow"
                 >
                   Save Profile
                 </button>
