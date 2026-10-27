@@ -11,13 +11,11 @@ const DEFAULT_MECHANICS = ['Juan', 'Pedro', 'Cardo', 'Talyer Shop / House'];
 export default function App() {
   const [activeTab, setActiveTab] = useState('pos');
 
-  // Dynamic Products State with LocalStorage
   const [products, setProducts] = useState(() => {
     const saved = localStorage.getItem('motofix_products');
     return saved ? JSON.parse(saved) : DEFAULT_PRODUCTS;
   });
 
-  // Dynamic Mechanics State with LocalStorage
   const [mechanics, setMechanics] = useState(() => {
     const saved = localStorage.getItem('motofix_mechanics');
     return saved ? JSON.parse(saved) : DEFAULT_MECHANICS;
@@ -27,20 +25,16 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
-  // Custom Service Input State
   const [customServiceName, setCustomServiceName] = useState('');
   const [customServicePrice, setCustomServicePrice] = useState('');
   const [selectedMechanic, setSelectedMechanic] = useState('');
 
-  // New Mechanic Form State
   const [newMechanicName, setNewMechanicName] = useState('');
 
-  // Product Add/Edit Modal State
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
   const [prodForm, setProdForm] = useState({ name: '', category: 'Engine Oil', price: '', stock: '', unit: 'pcs' });
 
-  // Sales History State with LocalStorage
   const [salesHistory, setSalesHistory] = useState(() => {
     const saved = localStorage.getItem('motofix_sales');
     return saved ? JSON.parse(saved) : [];
@@ -49,7 +43,6 @@ export default function App() {
   const [showSalesModal, setShowSalesModal] = useState(false);
   const [salesDateFilter, setSalesDateFilter] = useState('today');
 
-  // Sync to LocalStorage
   useEffect(() => {
     localStorage.setItem('motofix_products', JSON.stringify(products));
   }, [products]);
@@ -67,7 +60,6 @@ export default function App() {
 
   const categories = ['All', 'Engine Oil', 'Electrical', 'Tires', 'Brake System', 'Engine Parts', 'Maintenance'];
 
-  // Add / Edit Product Handlers
   const handleOpenAddProduct = () => {
     setEditingProductId(null);
     setProdForm({ name: '', category: 'Engine Oil', price: '', stock: '', unit: 'pcs' });
@@ -106,7 +98,6 @@ export default function App() {
     }
   };
 
-  // Add / Delete Mechanic Handlers
   const handleAddMechanic = (e) => {
     e.preventDefault();
     if (!newMechanicName.trim()) return alert('Paki-lagay ang pangalan ng mekaniko!');
@@ -122,7 +113,6 @@ export default function App() {
     }
   };
 
-  // Cart & POS Handlers
   const addToCart = (product) => {
     if (product.stock <= 0) return alert('Out of stock na ang item na ito!');
     setCart((prev) => {
@@ -212,7 +202,6 @@ export default function App() {
     window.print();
   };
 
-  // Fixed Smart Search Logic (Name & Category Matching)
   const filteredProducts = products.filter((prod) => {
     const term = searchTerm.toLowerCase().trim();
     const matchesCategory = selectedCategory === 'All' || prod.category === selectedCategory;
@@ -222,7 +211,7 @@ export default function App() {
       prod.category.toLowerCase().includes(term);
 
     if (term !== '') {
-      return matchesSearch; // Kapag may itina-type, hahanapin sa LAHAT ng items
+      return matchesSearch;
     }
     return matchesCategory;
   });
@@ -294,61 +283,62 @@ export default function App() {
         </div>
       </header>
 
-      {/* Cashier Tab */}
+      {/* Cashier Tab (Updated Compact Split Layout) */}
       {activeTab === 'pos' && (
-        <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
-            <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl shadow-sm">
-              <h3 className="text-sm font-bold text-amber-900 mb-2 flex items-center gap-2">👨‍🔧 + Add Labor / Serbisyo Fee</h3>
+        <div className="p-4 grid grid-cols-1 lg:grid-cols-4 gap-4">
+          {/* Main Products Area (Expanded Width - 3 Columns) */}
+          <div className="lg:col-span-3 space-y-3">
+            <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl shadow-sm">
+              <h3 className="text-xs font-bold text-amber-900 mb-1.5 flex items-center gap-1">👨‍🔧 + Add Labor / Serbisyo Fee</h3>
               <form onSubmit={handleAddService} className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                 <input
                   type="text"
                   placeholder="Uri ng Trabaho (e.g. Change Oil)"
                   value={customServiceName}
                   onChange={(e) => setCustomServiceName(e.target.value)}
-                  className="sm:col-span-1 border rounded-lg px-3 py-1.5 text-sm bg-white"
+                  className="sm:col-span-1 border rounded-lg px-2.5 py-1 text-xs bg-white"
                 />
                 <input
                   type="number"
                   placeholder="Presyo (₱)"
                   value={customServicePrice}
                   onChange={(e) => setCustomServicePrice(e.target.value)}
-                  className="border rounded-lg px-3 py-1.5 text-sm bg-white"
+                  className="border rounded-lg px-2.5 py-1 text-xs bg-white"
                 />
                 <select
                   value={selectedMechanic}
                   onChange={(e) => setSelectedMechanic(e.target.value)}
-                  className="border rounded-lg px-3 py-1.5 text-sm bg-white font-semibold"
+                  className="border rounded-lg px-2.5 py-1 text-xs bg-white font-semibold"
                 >
                   {mechanics.map((m) => (
                     <option key={m} value={m}>Mekaniko: {m}</option>
                   ))}
                 </select>
-                <button type="submit" className="bg-amber-600 hover:bg-amber-500 text-white text-sm font-bold py-1.5 px-3 rounded-lg transition">
+                <button type="submit" className="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold py-1 px-2.5 rounded-lg transition">
                   + Add Labor
                 </button>
               </form>
             </div>
 
-            <div className="flex flex-wrap gap-3 bg-white p-4 rounded-xl shadow-sm">
+            <div className="flex flex-wrap gap-2 bg-white p-3 rounded-xl shadow-sm">
               <input
                 type="text"
                 placeholder="Mag-search ng pyesa o gamit (e.g. oil, plug, pad)..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="flex-1 border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
 
-            <div className="flex gap-2 overflow-x-auto pb-2">
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
               {categories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => {
                     setSelectedCategory(cat);
-                    setSearchTerm(''); // Clear search kapag nag-click ng category
+                    setSearchTerm('');
                   }}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition ${
+                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition ${
                     selectedCategory === cat && searchTerm === '' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-200 shadow-sm'
                   }`}
                 >
@@ -357,28 +347,28 @@ export default function App() {
               ))}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {filteredProducts.map((prod) => (
-                <div key={prod.id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow-md transition">
+                <div key={prod.id} className="bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow-md transition">
                   <div>
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-xs uppercase tracking-wider text-slate-400 font-bold">{prod.category}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded font-bold ${prod.stock < 5 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">{prod.category}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${prod.stock < 5 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
                         {prod.stock} {prod.unit}
                       </span>
                     </div>
-                    <h3 className="font-semibold text-slate-800 line-clamp-2">{prod.name}</h3>
+                    <h3 className="font-semibold text-xs text-slate-800 line-clamp-2">{prod.name}</h3>
                   </div>
-                  <div className="mt-4 flex justify-between items-center">
-                    <span className="text-lg font-bold text-red-600">₱{prod.price.toLocaleString()}</span>
+                  <div className="mt-3 flex justify-between items-center">
+                    <span className="text-sm font-bold text-red-600">₱{prod.price.toLocaleString()}</span>
                     <button
                       onClick={() => addToCart(prod)}
                       disabled={prod.stock <= 0}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-bold transition ${
+                      className={`px-2 py-1 rounded-lg text-xs font-bold transition ${
                         prod.stock > 0 ? 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                       }`}
                     >
-                      {prod.stock > 0 ? 'Add +' : 'Out of Stock'}
+                      {prod.stock > 0 ? 'Add +' : 'Out'}
                     </button>
                   </div>
                 </div>
@@ -386,39 +376,40 @@ export default function App() {
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between h-[calc(100vh-140px)] sticky top-6">
+          {/* Compact Cart / Order Summary (Narrow Width - 1 Column) */}
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between h-[calc(100vh-120px)] sticky top-4">
             <div>
-              <div className="flex justify-between items-center pb-4 border-b">
-                <h2 className="text-xl font-bold flex items-center gap-2">🛒 Current Order</h2>
-                <span className="text-sm bg-slate-100 px-3 py-1 rounded-full font-bold">{cart.reduce((a, b) => a + b.qty, 0)} items</span>
+              <div className="flex justify-between items-center pb-2 border-b">
+                <h2 className="text-base font-bold flex items-center gap-1.5">🛒 Order Summary</h2>
+                <span className="text-xs bg-slate-100 px-2 py-0.5 rounded-full font-bold">{cart.reduce((a, b) => a + b.qty, 0)} items</span>
               </div>
 
-              <div className="mt-4 space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+              <div className="mt-3 space-y-2 max-h-[52vh] overflow-y-auto pr-1">
                 {cart.length === 0 ? (
-                  <div className="text-center py-12 text-slate-400">
-                    <p className="text-4xl mb-2">🛒</p>
-                    <p>Walang laman ang cart.</p>
+                  <div className="text-center py-8 text-slate-400">
+                    <p className="text-3xl mb-1">🛒</p>
+                    <p className="text-xs">Walang laman ang cart.</p>
                   </div>
                 ) : (
                   cart.map((item) => (
-                    <div key={item.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg border">
-                      <div className="flex-1 pr-2">
-                        <p className="font-semibold text-sm line-clamp-1">{item.name}</p>
+                    <div key={item.id} className="flex justify-between items-center p-2 bg-slate-50 rounded-lg border text-xs">
+                      <div className="flex-1 pr-1.5">
+                        <p className="font-semibold text-xs line-clamp-1">{item.name}</p>
                         {item.type === 'service' ? (
-                          <p className="text-xs text-amber-700 font-bold">👤 Mekaniko: {item.mechanic}</p>
+                          <p className="text-[10px] text-amber-700 font-bold">👤 {item.mechanic}</p>
                         ) : (
-                          <p className="text-xs text-slate-500">₱{item.price} x {item.qty}</p>
+                          <p className="text-[10px] text-slate-500">₱{item.price} x {item.qty}</p>
                         )}
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1">
                         {item.type !== 'service' && (
                           <>
-                            <button onClick={() => updateCartQty(item.id, -1)} className="w-6 h-6 rounded bg-slate-200 hover:bg-slate-300 font-bold">-</button>
-                            <span className="text-sm font-bold w-4 text-center">{item.qty}</span>
-                            <button onClick={() => updateCartQty(item.id, 1)} className="w-6 h-6 rounded bg-slate-200 hover:bg-slate-300 font-bold">+</button>
+                            <button onClick={() => updateCartQty(item.id, -1)} className="w-5 h-5 rounded bg-slate-200 hover:bg-slate-300 font-bold text-xs">-</button>
+                            <span className="text-xs font-bold w-3 text-center">{item.qty}</span>
+                            <button onClick={() => updateCartQty(item.id, 1)} className="w-5 h-5 rounded bg-slate-200 hover:bg-slate-300 font-bold text-xs">+</button>
                           </>
                         )}
-                        <span className="text-sm font-bold text-slate-800 ml-2">₱{(item.price * item.qty).toLocaleString()}</span>
+                        <span className="text-xs font-bold text-slate-800 ml-1">₱{(item.price * item.qty).toLocaleString()}</span>
                       </div>
                     </div>
                   ))
@@ -426,19 +417,19 @@ export default function App() {
               </div>
             </div>
 
-            <div className="pt-4 border-t space-y-3">
-              <div className="flex justify-between items-center text-xl font-black text-red-600">
-                <span>TOTAL AMOUNT</span>
+            <div className="pt-3 border-t space-y-2">
+              <div className="flex justify-between items-center text-base font-black text-red-600">
+                <span>TOTAL</span>
                 <span>₱{totalAmount.toLocaleString()}</span>
               </div>
               <button
                 onClick={handleCheckout}
                 disabled={cart.length === 0}
-                className={`w-full py-4 rounded-xl font-bold text-lg text-white transition shadow-lg ${
+                className={`w-full py-3 rounded-xl font-bold text-sm text-white transition shadow ${
                   cart.length > 0 ? 'bg-red-600 hover:bg-red-500 active:scale-95' : 'bg-slate-300 cursor-not-allowed'
                 }`}
               >
-                ₱ MAG-BAYAD (CHECKOUT)
+                ₱ CHECKOUT
               </button>
             </div>
           </div>
@@ -513,7 +504,6 @@ export default function App() {
           <div className="bg-white p-6 rounded-xl shadow-sm border space-y-4">
             <h2 className="text-2xl font-bold flex items-center gap-2">👨‍🔧 Mechanic Management & Earnings Tracker</h2>
 
-            {/* Add Mechanic Form */}
             <form onSubmit={handleAddMechanic} className="flex gap-2 bg-slate-50 p-3 rounded-xl border">
               <input
                 type="text"
