@@ -8,16 +8,16 @@ const DEFAULT_USERS = [
 const MASTER_RECOVERY_CODE = 'MOTOFIX-ADMIN'; // Secret Key para sa Forgot PIN Reset
 
 const DEFAULT_PRODUCTS = [
-  { id: 1, code: 'OIL-001', name: 'Yamalube AT 10W-40 (800ml)', category: 'Engine Oil', price: 280, stock: 24, unit: 'pcs' },
-  { id: 2, code: 'OIL-002', name: 'Shell Advance AX7 10W-40 (1L)', category: 'Engine Oil', price: 340, stock: 15, unit: 'pcs' },
-  { id: 3, code: 'BRK-001', name: 'Nissin Front Brake Pad (Mio/Beat)', category: 'Brake System', price: 180, stock: 8, unit: 'set' },
-  { id: 4, code: 'BRK-002', name: 'Brake Shoe Rear (Wave/TMX)', category: 'Brake System', price: 140, stock: 3, unit: 'set' },
-  { id: 5, code: 'TIR-001', name: 'IRC Tire 80/90 x 14 Tubeless', category: 'Tires & Tubes', price: 850, stock: 6, unit: 'pcs' },
-  { id: 6, code: 'TIR-002', name: 'FDR Sport XR 90/80 x 17', category: 'Tires & Tubes', price: 1250, stock: 4, unit: 'pcs' },
-  { id: 7, code: 'DRV-001', name: 'Drive Belt Gates Powerlink Mio', category: 'Drive System', price: 450, stock: 10, unit: 'pcs' },
-  { id: 8, code: 'DRV-002', name: 'Flyball Roller Set 12g', category: 'Drive System', price: 220, stock: 18, unit: 'set' },
-  { id: 9, code: 'ELE-001', name: 'NGK Spark Plug CPR8EA-9', category: 'Electrical', price: 130, stock: 30, unit: 'pcs' },
-  { id: 10, code: 'ELE-002', name: 'Battery Motolite 12V 5Ah', category: 'Electrical', price: 980, stock: 0, unit: 'pcs' }
+  { id: 1, code: 'OIL-001', name: 'Yamalube AT 10W-40 (800ml)', category: 'Engine Oil', price: 280, salePrice: 0, stock: 24, unit: 'pcs' },
+  { id: 2, code: 'OIL-002', name: 'Shell Advance AX7 10W-40 (1L)', category: 'Engine Oil', price: 340, salePrice: 0, stock: 15, unit: 'pcs' },
+  { id: 3, code: 'BRK-001', name: 'Nissin Front Brake Pad (Mio/Beat)', category: 'Brake System', price: 180, salePrice: 150, stock: 8, unit: 'set' },
+  { id: 4, code: 'BRK-002', name: 'Brake Shoe Rear (Wave/TMX)', category: 'Brake System', price: 140, salePrice: 0, stock: 3, unit: 'set' },
+  { id: 5, code: 'TIR-001', name: 'IRC Tire 80/90 x 14 Tubeless', category: 'Tires & Tubes', price: 850, salePrice: 790, stock: 6, unit: 'pcs' },
+  { id: 6, code: 'TIR-002', name: 'FDR Sport XR 90/80 x 17', category: 'Tires & Tubes', price: 1250, salePrice: 0, stock: 4, unit: 'pcs' },
+  { id: 7, code: 'DRV-001', name: 'Drive Belt Gates Powerlink Mio', category: 'Drive System', price: 450, salePrice: 0, stock: 10, unit: 'pcs' },
+  { id: 8, code: 'DRV-002', name: 'Flyball Roller Set 12g', category: 'Drive System', price: 220, salePrice: 190, stock: 18, unit: 'set' },
+  { id: 9, code: 'ELE-001', name: 'NGK Spark Plug CPR8EA-9', category: 'Electrical', price: 130, salePrice: 0, stock: 30, unit: 'pcs' },
+  { id: 10, code: 'ELE-002', name: 'Battery Motolite 12V 5Ah', category: 'Electrical', price: 980, salePrice: 0, stock: 0, unit: 'pcs' }
 ];
 
 const DEFAULT_MECHANICS = ['Juan', 'Pedro', 'Cardo', 'Talyer Shop / House'];
@@ -88,7 +88,7 @@ export default function App() {
   // Inventory Management State
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
-  const [prodForm, setProdForm] = useState({ code: '', name: '', category: 'Engine Oil', price: '', stock: '', unit: 'pcs' });
+  const [prodForm, setProdForm] = useState({ code: '', name: '', category: 'Engine Oil', price: '', salePrice: '', stock: '', unit: 'pcs' });
 
   // Sales History State
   const [salesHistory, setSalesHistory] = useState(() => {
@@ -126,7 +126,7 @@ export default function App() {
     localStorage.setItem('motofix_sales', JSON.stringify(salesHistory));
   }, [salesHistory]);
 
-  const categories = ['All', 'Engine Oil', 'Tires & Tubes', 'Brake System', 'Drive System', 'Electrical', 'Accessories'];
+  const categories = ['All', '🔥 On Sale', 'Engine Oil', 'Tires & Tubes', 'Brake System', 'Drive System', 'Electrical', 'Accessories'];
 
   // Auth Handlers
   const handleLogin = (e) => {
@@ -243,13 +243,21 @@ export default function App() {
 
   const handleOpenAddProduct = () => {
     setEditingProductId(null);
-    setProdForm({ code: `ITEM-${Date.now().toString().slice(-3)}`, name: '', category: 'Engine Oil', price: '', stock: '', unit: 'pcs' });
+    setProdForm({ code: `ITEM-${Date.now().toString().slice(-3)}`, name: '', category: 'Engine Oil', price: '', salePrice: '', stock: '', unit: 'pcs' });
     setShowProductModal(true);
   };
 
   const handleOpenEditProduct = (product) => {
     setEditingProductId(product.id);
-    setProdForm({ code: product.code || '', name: product.name, category: product.category, price: product.price, stock: product.stock, unit: product.unit });
+    setProdForm({
+      code: product.code || '',
+      name: product.name,
+      category: product.category,
+      price: product.price,
+      salePrice: product.salePrice || '',
+      stock: product.stock,
+      unit: product.unit
+    });
     setShowProductModal(true);
   };
 
@@ -257,15 +265,23 @@ export default function App() {
     e.preventDefault();
     if (!prodForm.name || !prodForm.price || !prodForm.stock) return alert('Paki-kumpleto ang mga detalye!');
 
+    const parsedPrice = Number(prodForm.price);
+    const parsedSalePrice = Number(prodForm.salePrice) || 0;
+
     if (editingProductId) {
       setProducts((prev) =>
-        prev.map((p) => (p.id === editingProductId ? { ...p, ...prodForm, price: Number(prodForm.price), stock: Number(prodForm.stock) } : p))
+        prev.map((p) =>
+          p.id === editingProductId
+            ? { ...p, ...prodForm, price: parsedPrice, salePrice: parsedSalePrice, stock: Number(prodForm.stock) }
+            : p
+        )
       );
     } else {
       const newProd = {
         id: Date.now(),
         ...prodForm,
-        price: Number(prodForm.price),
+        price: parsedPrice,
+        salePrice: parsedSalePrice,
         stock: Number(prodForm.stock)
       };
       setProducts((prev) => [newProd, ...prev]);
@@ -281,6 +297,12 @@ export default function App() {
 
   const addToCart = (product) => {
     if (product.stock <= 0) return alert('Out of stock na ang item na ito!');
+    
+    // Determine effective selling price (Sale Price if valid, otherwise Regular Price)
+    const effectivePrice = (product.salePrice && Number(product.salePrice) > 0 && Number(product.salePrice) < product.price)
+      ? Number(product.salePrice)
+      : product.price;
+
     setCart((prev) => {
       const existing = prev.find((item) => item.id === product.id);
       if (existing) {
@@ -290,7 +312,7 @@ export default function App() {
         }
         return prev.map((item) => (item.id === product.id ? { ...item, qty: item.qty + 1 } : item));
       }
-      return [...prev, { ...product, qty: 1, type: 'part' }];
+      return [...prev, { ...product, price: effectivePrice, originalPrice: product.price, qty: 1, type: 'part' }];
     });
   };
 
@@ -408,7 +430,13 @@ export default function App() {
 
   const filteredProducts = products.filter((prod) => {
     const term = searchTerm.toLowerCase().trim();
-    const matchesCategory = selectedCategory === 'All' || prod.category === selectedCategory;
+    const isSale = prod.salePrice && Number(prod.salePrice) > 0 && Number(prod.salePrice) < prod.price;
+
+    let matchesCategory = selectedCategory === 'All' || prod.category === selectedCategory;
+    if (selectedCategory === '🔥 On Sale') {
+      matchesCategory = isSale;
+    }
+
     const matchesSearch =
       prod.name.toLowerCase().includes(term) ||
       (prod.code && prod.code.toLowerCase().includes(term)) ||
@@ -623,7 +651,13 @@ export default function App() {
                 <button
                   key={cat}
                   onClick={() => { setSelectedCategory(cat); setSearchTerm(''); }}
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap border ${selectedCategory === cat && searchTerm === '' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'}`}
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap border ${
+                    selectedCategory === cat && searchTerm === ''
+                      ? 'bg-slate-900 text-white'
+                      : cat === '🔥 On Sale'
+                      ? 'bg-rose-50 text-rose-600 border-rose-300 hover:bg-rose-100'
+                      : 'bg-white text-slate-600'
+                  }`}
                 >
                   {cat}
                 </button>
@@ -631,28 +665,52 @@ export default function App() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
-              {filteredProducts.map((prod) => (
-                <div
-                  key={prod.id}
-                  onClick={() => addToCart(prod)}
-                  className="bg-white p-2 rounded border shadow-sm hover:border-red-500 cursor-pointer flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex justify-between items-center text-[8px] font-bold text-slate-400 mb-0.5">
-                      <span>{prod.code || 'ITEM'}</span>
-                      {getStockBadge(prod.stock)}
+              {filteredProducts.map((prod) => {
+                const isOnSale = prod.salePrice && Number(prod.salePrice) > 0 && Number(prod.salePrice) < prod.price;
+                const activePrice = isOnSale ? Number(prod.salePrice) : prod.price;
+
+                return (
+                  <div
+                    key={prod.id}
+                    onClick={() => addToCart(prod)}
+                    className={`bg-white p-2 rounded border shadow-sm hover:border-red-500 cursor-pointer flex flex-col justify-between relative ${
+                      isOnSale ? 'border-rose-300 bg-rose-50/20' : ''
+                    }`}
+                  >
+                    <div>
+                      <div className="flex justify-between items-center text-[8px] font-bold text-slate-400 mb-0.5">
+                        <div className="flex items-center gap-1">
+                          <span>{prod.code || 'ITEM'}</span>
+                          {isOnSale && (
+                            <span className="bg-rose-600 text-white font-black px-1 rounded text-[7px] uppercase tracking-wider animate-pulse">
+                              🔥 SALE
+                            </span>
+                          )}
+                        </div>
+                        {getStockBadge(prod.stock)}
+                      </div>
+                      <h3 className="font-bold text-[10px] text-slate-800 leading-tight line-clamp-2">{prod.name}</h3>
+                      <p className="text-[8px] text-slate-400 mt-0.5">{prod.category}</p>
                     </div>
-                    <h3 className="font-bold text-[10px] text-slate-800 leading-tight line-clamp-2">{prod.name}</h3>
-                    <p className="text-[8px] text-slate-400 mt-0.5">{prod.category}</p>
+
+                    <div className="mt-1.5 flex justify-between items-center pt-1 border-t border-slate-100">
+                      <div>
+                        {isOnSale ? (
+                          <div className="flex items-baseline space-x-1">
+                            <span className="text-[11px] font-black text-rose-600">₱{activePrice.toFixed(2)}</span>
+                            <span className="text-[8px] text-slate-400 line-through">₱{prod.price.toFixed(2)}</span>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] font-bold text-red-600">₱{prod.price.toFixed(2)}</span>
+                        )}
+                      </div>
+                      <span className="text-[9px] bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-200 px-1.5 py-0.5 rounded font-bold transition">
+                        +Add
+                      </span>
+                    </div>
                   </div>
-                  <div className="mt-1.5 flex justify-between items-center pt-1 border-t border-slate-100">
-                    <span className="text-[11px] font-bold text-red-600">₱{prod.price.toFixed(2)}</span>
-                    <span className="text-[9px] bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-200 px-1.5 py-0.5 rounded font-bold transition">
-                      +Add
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -677,7 +735,12 @@ export default function App() {
                         <span className="font-bold text-red-400">₱{(item.price * item.qty).toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between items-center mt-1">
-                        <p className="text-[8px] text-slate-400">₱{item.price} each</p>
+                        <div className="text-[8px] text-slate-400 flex items-center gap-1">
+                          <span>₱{item.price} each</span>
+                          {item.originalPrice && item.originalPrice > item.price && (
+                            <span className="text-rose-400 text-[7px] font-bold">(ON SALE)</span>
+                          )}
+                        </div>
                         {item.type !== 'service' && (
                           <div className="flex items-center space-x-1">
                             <button onClick={() => updateCartQty(item.id, -1)} className="w-3.5 h-3.5 rounded bg-slate-700 font-bold text-[9px]">-</button>
@@ -819,7 +882,7 @@ export default function App() {
           <div className="flex justify-between items-center bg-white p-3 rounded shadow border">
             <div>
               <h2 className="text-base font-bold">📦 Inventory Management</h2>
-              <p className="text-[10px] text-slate-500">Magdagdag, mag-edit, o magbura ng pyesa at stocks.</p>
+              <p className="text-[10px] text-slate-500">Magdagdag, mag-edit, o mag-sale ng pyesa at stocks.</p>
             </div>
             <div className="space-x-1">
               <button onClick={resetToDefaultItems} className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-2 py-1 rounded text-xs">🔄 Reset Sample Items</button>
@@ -835,25 +898,35 @@ export default function App() {
                     <th className="p-2">Code</th>
                     <th className="p-2">Item Name</th>
                     <th className="p-2">Category</th>
-                    <th className="p-2">Price</th>
+                    <th className="p-2">Reg Price</th>
+                    <th className="p-2">Sale Price</th>
                     <th className="p-2">Available Stock</th>
                     <th className="p-2 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((p) => (
-                    <tr key={p.id} className="border-b hover:bg-slate-50">
-                      <td className="p-2 font-bold text-slate-400">{p.code || 'ITEM'}</td>
-                      <td className="p-2 font-semibold">{p.name}</td>
-                      <td className="p-2 text-slate-500">{p.category}</td>
-                      <td className="p-2 font-bold text-red-600">₱{p.price.toFixed(2)}</td>
-                      <td className="p-2">{getStockBadge(p.stock)}</td>
-                      <td className="p-2 text-center space-x-1">
-                        <button onClick={() => handleOpenEditProduct(p)} className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded font-bold text-[10px]">✏ Edit</button>
-                        <button onClick={() => handleDeleteProduct(p.id, p.name)} className="px-2 py-0.5 bg-rose-100 text-rose-700 rounded font-bold text-[10px]">🗑 Delete</button>
-                      </td>
-                    </tr>
-                  ))}
+                  {products.map((p) => {
+                    const isOnSale = p.salePrice && Number(p.salePrice) > 0 && Number(p.salePrice) < p.price;
+                    return (
+                      <tr key={p.id} className="border-b hover:bg-slate-50">
+                        <td className="p-2 font-bold text-slate-400">{p.code || 'ITEM'}</td>
+                        <td className="p-2 font-semibold flex items-center gap-1">
+                          {p.name}
+                          {isOnSale && <span className="bg-rose-100 text-rose-700 font-extrabold text-[8px] px-1 rounded">ON SALE</span>}
+                        </td>
+                        <td className="p-2 text-slate-500">{p.category}</td>
+                        <td className="p-2 font-bold text-slate-700">₱{p.price.toFixed(2)}</td>
+                        <td className="p-2 font-bold text-rose-600">
+                          {isOnSale ? `₱${Number(p.salePrice).toFixed(2)}` : '-'}
+                        </td>
+                        <td className="p-2">{getStockBadge(p.stock)}</td>
+                        <td className="p-2 text-center space-x-1">
+                          <button onClick={() => handleOpenEditProduct(p)} className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded font-bold text-[10px]">✏ Edit</button>
+                          <button onClick={() => handleDeleteProduct(p.id, p.name)} className="px-2 py-0.5 bg-rose-100 text-rose-700 rounded font-bold text-[10px]">🗑 Delete</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -956,7 +1029,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Edit Own Profile Modal (Name & PIN Change for Any Logged-in User) */}
+      {/* Edit Own Profile Modal */}
       {showEditProfileModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-3">
           <div className="bg-white w-full max-w-xs rounded-xl shadow-2xl p-4 space-y-3 text-slate-800 text-xs">
@@ -1021,7 +1094,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Add / Edit Product Modal */}
+      {/* Add / Edit Product Modal (With Sale Price Field) */}
       {showProductModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-3">
           <div className="bg-white w-full max-w-sm rounded-xl shadow-2xl overflow-hidden p-4 space-y-3 text-xs">
@@ -1054,13 +1127,13 @@ export default function App() {
                     onChange={(e) => setProdForm({ ...prodForm, category: e.target.value })}
                     className="w-full border rounded p-1 text-xs mt-0.5"
                   >
-                    {categories.filter((c) => c !== 'All').map((c) => (
+                    {categories.filter((c) => c !== 'All' && c !== '🔥 On Sale').map((c) => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="font-bold text-[10px]">Price (₱)</label>
+                  <label className="font-bold text-[10px]">Regular Price (₱)</label>
                   <input
                     type="number"
                     required
@@ -1072,6 +1145,16 @@ export default function App() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
+                  <label className="font-bold text-[10px] text-rose-600">Sale Price (₱) [Optional]</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={prodForm.salePrice}
+                    onChange={(e) => setProdForm({ ...prodForm, salePrice: e.target.value })}
+                    className="w-full border border-rose-300 rounded p-1 text-xs mt-0.5 bg-rose-50/30 text-rose-700 font-bold"
+                  />
+                </div>
+                <div>
                   <label className="font-bold text-[10px]">Stock Count</label>
                   <input
                     type="number"
@@ -1081,16 +1164,16 @@ export default function App() {
                     className="w-full border rounded p-1 text-xs mt-0.5"
                   />
                 </div>
-                <div>
-                  <label className="font-bold text-[10px]">Unit</label>
-                  <input
-                    type="text"
-                    required
-                    value={prodForm.unit}
-                    onChange={(e) => setProdForm({ ...prodForm, unit: e.target.value })}
-                    className="w-full border rounded p-1 text-xs mt-0.5"
-                  />
-                </div>
+              </div>
+              <div>
+                <label className="font-bold text-[10px]">Unit</label>
+                <input
+                  type="text"
+                  required
+                  value={prodForm.unit}
+                  onChange={(e) => setProdForm({ ...prodForm, unit: e.target.value })}
+                  className="w-full border rounded p-1 text-xs mt-0.5"
+                />
               </div>
               <div className="flex justify-end space-x-2 pt-2 border-t">
                 <button type="button" onClick={() => setShowProductModal(false)} className="px-3 py-1 bg-slate-200 rounded text-xs font-bold">Cancel</button>
