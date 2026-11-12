@@ -6,6 +6,7 @@ const DEFAULT_USERS = [
 ];
 
 const MASTER_RECOVERY_CODE = 'MOTOFIX-ADMIN'; // Secret Key para sa Forgot PIN Reset
+const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 Minuto na walang galaw = Auto Logout
 
 const DEFAULT_PRODUCTS = [
   { id: 1, code: 'OIL-001', name: 'Yamalube AT 10W-40 (800ml)', category: 'Engine Oil', price: 280, salePrice: 0, stock: 24, unit: 'pcs' },
@@ -109,6 +110,30 @@ export default function App() {
     } else {
       localStorage.removeItem('motofix_current_user');
     }
+  }, [currentUser]);
+
+  // AUTO LOGOUT IDLE TIMER EFFECT
+  useEffect(() => {
+    if (!currentUser) return;
+
+    let timer;
+    const resetTimer = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        setCurrentUser(null);
+        alert('Awtomatikong nag-log out ang system dahil walang aktibidad sa loob ng 5 minuto (Idle Safety).');
+      }, IDLE_TIMEOUT_MS);
+    };
+
+    const events = ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'];
+    events.forEach((evt) => window.addEventListener(evt, resetTimer));
+
+    resetTimer();
+
+    return () => {
+      clearTimeout(timer);
+      events.forEach((evt) => window.removeEventListener(evt, resetTimer));
+    };
   }, [currentUser]);
 
   useEffect(() => {
@@ -298,7 +323,6 @@ export default function App() {
   const addToCart = (product) => {
     if (product.stock <= 0) return alert('Out of stock na ang item na ito!');
     
-    // Determine effective selling price (Sale Price if valid, otherwise Regular Price)
     const effectivePrice = (product.salePrice && Number(product.salePrice) > 0 && Number(product.salePrice) < product.price)
       ? Number(product.salePrice)
       : product.price;
@@ -322,6 +346,8 @@ export default function App() {
       return alert('Paki-lagay ang tamang detalye ng labor fee!');
     }
 
+    const assignedMechanic = selectedMechanic || mechanics[0] || 'Talyer Shop';
+
     const serviceItem = {
       id: 'srv_' + Date.now(),
       name: `[LABOR] ${customServiceName}`,
@@ -329,7 +355,7 @@ export default function App() {
       price: Number(customServicePrice),
       qty: 1,
       type: 'service',
-      mechanic: selectedMechanic || mechanics[0] || 'Talyer Shop'
+      mechanic: assignedMechanic
     };
 
     setCart((prev) => [...prev, serviceItem]);
@@ -350,6 +376,10 @@ export default function App() {
         })
         .filter(Boolean)
     );
+  };
+
+  const removeCartItem = (id) => {
+    setCart((prev) => prev.filter((item) => item.id !== id));
   };
 
   const handleAddMechanic = (e) => {
@@ -628,8 +658,9 @@ export default function App() {
       {activeTab === 'pos' && (
         <div className="p-2 grid grid-cols-1 lg:grid-cols-4 gap-2">
           <div className="lg:col-span-3 space-y-2">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-              <div className="sm:col-span-2 flex items-center bg-white border rounded px-2 py-1">
+            {/* Search & Add Labor/Mechanic Bar */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-1.5">
+              <div className="md:col-span-5 flex items-center bg-white border rounded px-2 py-1">
                 <span className="mr-1 text-slate-400">🔍</span>
                 <input
                   type="text"
@@ -639,10 +670,35 @@ export default function App() {
                   className="w-full text-[10px] outline-none"
                 />
               </div>
-              <form onSubmit={handleAddService} className="flex gap-1 bg-amber-50 border border-amber-200 p-1 rounded">
-                <input type="text" placeholder="Labor Fee" value={customServiceName} onChange={(e) => setCustomServiceName(e.target.value)} className="w-1/2 border rounded px-1 text-[9px]" />
-                <input type="number" placeholder="₱" value={customServicePrice} onChange={(e) => setCustomServicePrice(e.target.value)} className="w-1/4 border rounded px-1 text-[9px]" />
-                <button type="submit" className="w-1/4 bg-amber-600 text-white text-[9px] font-bold rounded">+ Add</button>
+              <form onSubmit={handleAddService} className="md:col-span-7 flex flex-wrap sm:flex-nowrap gap-1 bg-amber-50 border border-amber-300 p-1 rounded items-center">
+                <span className="text-[9px] font-bold text-amber-800 px-1 whitespace-nowrap">👨‍🔧 Labor:</span>
+                <select
+                  value={selectedMechanic}
+                  onChange={(e) => setSelectedMechanic(e.target.value)}
+                  className="border border-amber-300 rounded px-1 py-0.5 text-[9px] font-bold bg-white text-slate-800"
+                  title="Piliin kung sino ang gumawa"
+                >
+                  {mechanics.map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  placeholder="Serbisyo (hal. Change Oil)"
+                  value={customServiceName}
+                  onChange={(e) => setCustomServiceName(e.target.value)}
+                  className="flex-1 min-w-[90px] border border-amber-300 rounded px-1.5 py-0.5 text-[9px] bg-white"
+                />
+                <input
+                  type="number"
+                  placeholder="₱ Fee"
+                  value={customServicePrice}
+                  onChange={(e) => setCustomServicePrice(e.target.value)}
+                  className="w-16 border border-amber-300 rounded px-1 py-0.5 text-[9px] bg-white font-bold"
+                />
+                <button type="submit" className="bg-amber-600 hover:bg-amber-500 text-white text-[9px] font-bold px-2 py-0.5 rounded whitespace-nowrap shadow-sm">
+                  + Add Labor
+                </button>
               </form>
             </div>
 
@@ -735,18 +791,30 @@ export default function App() {
                         <span className="font-bold text-red-400">₱{(item.price * item.qty).toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between items-center mt-1">
-                        <div className="text-[8px] text-slate-400 flex items-center gap-1">
-                          <span>₱{item.price} each</span>
-                          {item.originalPrice && item.originalPrice > item.price && (
-                            <span className="text-rose-400 text-[7px] font-bold">(ON SALE)</span>
+                        <div className="text-[8px] text-slate-400 flex flex-col">
+                          <div className="flex items-center gap-1">
+                            <span>₱{item.price} each</span>
+                            {item.originalPrice && item.originalPrice > item.price && (
+                              <span className="text-rose-400 text-[7px] font-bold">(ON SALE)</span>
+                            )}
+                          </div>
+                          {item.type === 'service' && item.mechanic && (
+                            <span className="text-amber-400 font-bold text-[8px]">👨‍🔧 Mechanic: {item.mechanic}</span>
                           )}
                         </div>
-                        {item.type !== 'service' && (
+                        {item.type !== 'service' ? (
                           <div className="flex items-center space-x-1">
                             <button onClick={() => updateCartQty(item.id, -1)} className="w-3.5 h-3.5 rounded bg-slate-700 font-bold text-[9px]">-</button>
                             <span className="text-[9px] font-bold text-white">{item.qty}</span>
                             <button onClick={() => updateCartQty(item.id, 1)} className="w-3.5 h-3.5 rounded bg-slate-700 font-bold text-[9px]">+</button>
                           </div>
+                        ) : (
+                          <button
+                            onClick={() => removeCartItem(item.id)}
+                            className="text-[8px] bg-rose-900/60 hover:bg-rose-600 text-rose-200 px-1.5 py-0.5 rounded font-bold"
+                          >
+                            ✕ Remove
+                          </button>
                         )}
                       </div>
                     </div>
@@ -1094,7 +1162,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Add / Edit Product Modal (With Sale Price Field) */}
+      {/* Add / Edit Product Modal */}
       {showProductModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-3">
           <div className="bg-white w-full max-w-sm rounded-xl shadow-2xl overflow-hidden p-4 space-y-3 text-xs">
@@ -1250,7 +1318,7 @@ export default function App() {
                           <li key={idx} className="flex justify-between text-slate-700">
                             <span>
                               • {item.name} x {item.qty}
-                              {item.type === 'service' && <span className="text-[9px] text-amber-600 font-bold ml-1">({item.mechanic})</span>}
+                              {item.type === 'service' && <span className="text-[9px] text-amber-600 font-bold ml-1">(👨‍🔧 {item.mechanic})</span>}
                             </span>
                             <span className="font-semibold">₱{(item.price * item.qty).toFixed(2)}</span>
                           </li>
