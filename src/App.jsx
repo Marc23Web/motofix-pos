@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const DEFAULT_USERS = [
   { id: 1, name: 'Owner (Master)', role: 'admin', pin: '1234' },
@@ -6,7 +6,7 @@ const DEFAULT_USERS = [
 ];
 
 const MASTER_RECOVERY_CODE = 'MOTOFIX-ADMIN'; // Secret Key para sa Forgot PIN Reset
-const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 Minuto na walang galaw = Auto Logout
+const IDLE_TIMEOUT_SECONDS = 180; // 3 Minuto (180 seconds) na walang galaw = Auto Logout
 
 const DEFAULT_PRODUCTS = [
   { id: 1, code: 'OIL-001', name: 'Yamalube AT 10W-40 (800ml)', category: 'Engine Oil', price: 280, salePrice: 0, stock: 24, unit: 'pcs' },
@@ -37,6 +37,10 @@ export default function App() {
 
   const [loginPin, setLoginPin] = useState('');
   const [selectedUserId, setSelectedUserId] = useState(users[0]?.id || '');
+
+  // Auto-Logout Countdown State (Timestamp-based so it works even after device sleep)
+  const [secondsLeft, setSecondsLeft] = useState(IDLE_TIMEOUT_SECONDS);
+  const lastActivityRef = useRef(Date.now());
 
   // Forgot PIN Reset Modal State
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -112,27 +116,40 @@ export default function App() {
     }
   }, [currentUser]);
 
-  // AUTO LOGOUT IDLE TIMER EFFECT
+  // SMART AUTO-LOGOUT IDLE TIMER (Timestamp + Visible Countdown + Sleep Detection)
   useEffect(() => {
     if (!currentUser) return;
 
-    let timer;
-    const resetTimer = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        setCurrentUser(null);
-        alert('Awtomatikong nag-log out ang system dahil walang aktibidad sa loob ng 5 minuto (Idle Safety).');
-      }, IDLE_TIMEOUT_MS);
+    lastActivityRef.current = Date.now();
+    setSecondsLeft(IDLE_TIMEOUT_SECONDS);
+
+    const recordActivity = () => {
+      lastActivityRef.current = Date.now();
+      setSecondsLeft(IDLE_TIMEOUT_SECONDS);
     };
 
-    const events = ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'];
-    events.forEach((evt) => window.addEventListener(evt, resetTimer));
+    const events = ['mousedown', 'keydown', 'touchstart', 'scroll'];
+    events.forEach((evt) => window.addEventListener(evt, recordActivity));
 
-    resetTimer();
+    const checkIdle = () => {
+      const elapsedSeconds = Math.floor((Date.now() - lastActivityRef.current) / 1000);
+      const remaining = IDLE_TIMEOUT_SECONDS - elapsedSeconds;
+
+      if (remaining <= 0) {
+        setCurrentUser(null);
+        setLoginPin('');
+      } else {
+        setSecondsLeft(remaining);
+      }
+    };
+
+    const interval = setInterval(checkIdle, 1000);
+    document.addEventListener('visibilitychange', checkIdle);
 
     return () => {
-      clearTimeout(timer);
-      events.forEach((evt) => window.removeEventListener(evt, resetTimer));
+      clearInterval(interval);
+      events.forEach((evt) => window.removeEventListener(evt, recordActivity));
+      document.removeEventListener('visibilitychange', checkIdle);
     };
   }, [currentUser]);
 
@@ -152,6 +169,13 @@ export default function App() {
   }, [salesHistory]);
 
   const categories = ['All', '🔥 On Sale', 'Engine Oil', 'Tires & Tubes', 'Brake System', 'Drive System', 'Electrical', 'Accessories'];
+
+  // Format Seconds to MM:SS
+  const formatTimer = (secs) => {
+    const mins = Math.floor(secs / 60);
+    const remSecs = secs % 60;
+    return `${mins}:${remSecs < 10 ? '0' : ''}${remSecs}`;
+  };
 
   // Auth Handlers
   const handleLogin = (e) => {
@@ -635,6 +659,16 @@ export default function App() {
           >
             ✏️ Edit My Name & PIN
           </button>
+          <span
+            className={`text-[9px] px-1.5 py-0.5 rounded font-bold border ${
+              secondsLeft <= 30
+                ? 'bg-rose-900/80 text-rose-300 border-rose-500 animate-pulse'
+                : 'bg-slate-800 text-slate-400 border-slate-700'
+            }`}
+            title="Auto-logout kapag walang ginagawa"
+          >
+            ⏱️ Auto-Lock: {formatTimer(secondsLeft)}
+          </span>
         </div>
 
         <div className="flex space-x-1 items-center flex-wrap gap-y-1">
